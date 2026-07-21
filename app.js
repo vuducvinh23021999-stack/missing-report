@@ -356,9 +356,19 @@ function parseGDate(s){
   // Google gviz format: Date(year,month,day,hour,min,sec) where month is 0-indexed
   var m=s.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
   if(m)return new Date(+m[1],+m[2],+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  // US format: M/D/YYYY H:mm:ss AM/PM
+  var m1=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if(m1){
+    var h=+m1[4];if(m1[7].toUpperCase()==='PM'&&h<12)h+=12;if(m1[7].toUpperCase()==='AM'&&h===12)h=0;
+    return new Date(+m1[3],+m1[1]-1,+m1[2],h,+m1[5],+(m1[6]||0));
+  }
   // Published CSV format: DD/MM/YYYY HH:MM
   var m2=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m2)return new Date(+m2[3],+m2[2]-1,+m2[1],+(m2[4]||0),+(m2[5]||0),+(m2[6]||0));
+  if(m2){
+    // If month > 12 then it's actually US MM/DD/YYYY, swap
+    if(+m2[2]>12)return new Date(+m2[3],+m2[1]-1,+m2[2],+(m2[4]||0),+(m2[5]||0),+(m2[6]||0));
+    return new Date(+m2[3],+m2[2]-1,+m2[1],+(m2[4]||0),+(m2[5]||0),+(m2[6]||0));
+  }
   return new Date(s);
 }
 function filterByPeriod(data, dateField, start, end){
