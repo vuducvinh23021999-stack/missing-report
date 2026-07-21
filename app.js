@@ -2,7 +2,7 @@
 'use strict';
 
 // ===== PASSWORD =====
-var _PASSWORD='123456';
+var _PASSWORD='242628';
 
 // ===== CONFIG =====
 var SHEET_ID  ='1D9A-q2kAEpM6TX-V5jCvm2tPZYhv1V4Ia4o66K7tCis';
