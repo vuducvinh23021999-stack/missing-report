@@ -132,7 +132,7 @@ function calcPeriods(){
   
   // Returned Period
   returnedStart=new Date(y,baseM+1,1,0,0,0,0);
-  returnedEnd=new Date(y,baseM+1,15,23,59,59,999);
+  returnedEnd=new Date(periodInEnd); // end of current month (31/07)
   
   periodLabel=pad(periodInStart.getDate())+'/'+pad(periodInStart.getMonth()+1)+' → '+
     pad(periodInEnd.getDate())+'/'+pad(periodInEnd.getMonth()+1);
