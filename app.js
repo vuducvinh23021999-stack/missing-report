@@ -94,7 +94,7 @@ var summaryMetrics = {
   netQty: 0, netAmt: 0
 };
 var checked={in:{},out:{},pending:{}};
-var qr=null, chart=null, _chartDayFilter=null;
+var qr=null, chart=null, _chartDayFilter=null, _debugOutPeriod=0;
 var detailType=null;
 var periodInStart=null, periodInEnd=null;
 var prevInStart=null, prevInEnd=null;
@@ -257,7 +257,9 @@ function fetchSheet(gid,timeout){
   timeout=timeout||15000;
   return new Promise(function(resolve){
     var cb='gs_cb_'+Math.random().toString(36).substr(2,8);
-    var url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&gid='+gid+'&_='+Date.now();
+    // Thêm cache-busting mạnh hơn với headers no-cache
+    var ts=Date.now()+Math.random();
+    var url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&gid='+gid+'&_='+ts+'&nocache='+ts;
     window[cb]=function(r){
       try{
         if(!r||!r.table||!r.table.rows){resolve([]);return;}
@@ -426,10 +428,9 @@ function calculateMetrics(){
     s.qty_in_prev+=parseFloat(r.qty_moving)||0;
   });
 
-  // C+D. Parse OUT (all from wh-missing within period)
-  var outAll=filterByPeriod(allOut,'ts_created',periodInStart,periodInEnd).filter(function(r){
-    return String(r.area_from).toLowerCase().trim()==='wh-missing';
-  });
+  // C+D. Parse OUT (all within period)
+  var outAll=filterByPeriod(allOut,'ts_created',periodInStart,periodInEnd);
+  console.log('OUT: total='+allOut.length+', inPeriod='+outAll.length);
   outAll.forEach(function(r){
     if(!r.sku_code)return;
     var s=getOrCreateSku(r.sku_code, r.product_name, r.price_unit);
@@ -486,8 +487,8 @@ function calculateMetrics(){
           price_unit:r.price_unit,
           amt_moving:r.amt_out_used,
           ts_moving_done:r.latest_date_out,
-          area_from:r.area_from||'WH-MISSING',
-          area_to:r.area_to||'WH-MAIN'
+          area_from:r.area_from,
+          area_to:r.area_to
         });
       }
 
