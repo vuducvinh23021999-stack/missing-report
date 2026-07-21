@@ -430,7 +430,7 @@ function calculateMetrics(){
 
   // C+D. Parse OUT (all within period)
   var outAll=filterByPeriod(allOut,'ts_created',periodInStart,periodInEnd);
-  console.log('OUT: total='+allOut.length+', inPeriod='+outAll.length);
+  console.log('OUT: total='+allOut.length+', inPeriod='+outAll.length+', grouped='+Object.keys(skuMap).filter(function(k){return skuMap[k].qty_out_gap>0;}).length);
   outAll.forEach(function(r){
     if(!r.sku_code)return;
     var s=getOrCreateSku(r.sku_code, r.product_name, r.price_unit);
