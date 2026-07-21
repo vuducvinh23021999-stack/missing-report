@@ -462,8 +462,8 @@ function calculateMetrics(){
     r.amt_out_used=qty_out_used*r.price_unit;
     r.amt_remaining=r.qty_remaining*r.price_unit;
 
-    // OUT MISSING Detail (always, regardless of IN)
-    if(r.qty_out_gap>0){
+    // OUT MISSING Detail (only for SKUs with IN in period)
+    if(r.qty_in_curr>0 && r.qty_out_gap>0){
       allOutGrouped.push({
         sku_code:r.sku_code,
         product_name:r.product_name,
