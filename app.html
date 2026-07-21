@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKU MISSING Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="dark">
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+<div style="text-align:center">
+<div class="spinner"></div>
+<div style="color:var(--text-muted)" id="loadingText">Dang tai du lieu...</div>
+<div style="color:var(--text-subtle);font-size:12px;margin-top:6px" id="statusText"></div>
+</div>
+</div>
+<script>setTimeout(function(){var e=document.getElementById('loadingOverlay');if(e)e.classList.add('hidden');},15000);</script>
+
+<!-- ===== LAYOUT SHELL ===== -->
+<div class="app-shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo-mark">ST</div>
+
+    <div class="nav-item active" title="Dashboard" onclick="app.goBack()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+    </div>
+    <div class="nav-item" title="Scan">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+    </div>
+    <div class="nav-item" title="Google Sheets">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    </div>
+    <div class="nav-item" title="Export">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <div class="nav-item" title="Settings" onclick="document.getElementById('modalDetail').classList.add('active')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </div>
+
+    <!-- Theme toggle at bottom -->
+    <button class="theme-toggle" id="themeToggle" onclick="app.toggleTheme()" title="Toggle theme">
+      <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+
+    <div class="avatar-sidebar" id="avatarSidebar">V</div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-wrapper">
+
+    <!-- ===== TOP HEADER ===== -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="logo-text">
+          <span class="logo-sku">SKU</span><span class="logo-tracker">Tracker</span>
+        </div>
+        <div class="live-badge">
+          <span class="refresh-dot"></span>
+          <span id="liveText">Live</span>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <div class="search-bar-top">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Tim SKU, Ten san pham...">
+          <kbd>&#x2318;K</kbd>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <select class="lang-select" id="langSel" onchange="app.setLang(this.value)">
+          <option value="vi">Tieng Viet</option>
+          <option value="en">English</option>
+          <option value="th">ภาษาไทย</option>
+        </select>
+        <button class="btn btn-qr" onclick="app.openQR()" id="scanBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+          <span id="scanBtnText">Scan</span>
+        </button>
+        <button class="btn btn-primary" onclick="app.refresh()" id="refreshBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span id="refreshBtnText">Refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <!-- ===== MAIN PAGE ===== -->
+    <div id="pageMain" class="page-main">
+      <div class="container">
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card in" id="cardIn" onclick="app.goDetail('in')">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap in">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <div class="stat-body">
+                <div class="stat-title" id="titleIn">TONG SKU IN MISSING</div>
+                <div class="stat-count" id="countIn">0</div>
+                <div class="stat-amount"><span id="amountIn">0</span> THB</div>
+              </div>
+            </div>
+            <div class="stat-card-bottom">
+              <button class="stat-excel-btn" onclick="event.stopPropagation();app.exportExcel('in')" id="excelIn">📥 Export</button>
+              <div class="stat-click-hint" id="hintIn">Click xem chi tiet →</div>
+            </div>
+          </div>
+
+          <div class="stat-card out" id="cardOut" onclick="app.goDetail('out')">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap out">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <div class="stat-body">
+                <div class="stat-title" id="titleOut">TONG SKU OUT MISSING</div>
+                <div class="stat-count" id="countOut">0</div>
+                <div class="stat-amount"><span id="amountOut">0</span> THB</div>
+              </div>
+            </div>
+            <div class="stat-card-bottom">
+              <button class="stat-excel-btn" onclick="event.stopPropagation();app.exportExcel('out')" id="excelOut">📥 Export</button>
+              <div class="stat-click-hint" id="hintOut">Click xem chi tiet →</div>
+            </div>
+          </div>
+
+          <div class="stat-card pending" id="cardPending" onclick="app.goDetail('pending')">
+            <div class="stat-card-top">
+              <div class="stat-icon-wrap pending">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="stat-body">
+                <div class="stat-title" id="titlePending">TONG SKU CHUA OUT</div>
+                <div class="stat-count" id="countPending">0</div>
+                <div class="stat-amount"><span id="amountPending">0</span> THB</div>
+              </div>
+            </div>
+            <div class="stat-card-bottom">
+              <button class="stat-excel-btn" onclick="event.stopPropagation();app.exportExcel('pending')" id="excelPend">📥 Export</button>
+              <div class="stat-click-hint" id="hintPend">Click xem chi tiet →</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div class="card-section">
+          <div class="section-header">
+            <div class="section-title" id="sumTitle">📊 Bang tong hop du lieu ky nay</div>
+            <div style="font-size:12px;color:var(--text-subtle)" id="summaryPeriod"></div>
+          </div>
+          <div class="summary-table-wrap">
+            <table class="summary-table">
+              <thead>
+                <tr>
+                  <th>Hang muc</th>
+                  <th style="text-align:right">So luong (Qty)</th>
+                  <th style="text-align:right">So tien (Amount ฿)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr id="sumInRow">
+                  <td class="sum-label" id="sumInLabel">📥 IN MISSING</td>
+                  <td class="sum-qty" id="sumInQty">0</td>
+                  <td class="sum-amt blue" id="sumInAmt">0</td>
+                </tr>
+                <tr id="sumGapRow">
+                  <td class="sum-label" id="sumGapLabel">📤 OUT gap lastmonth</td>
+                  <td class="sum-qty" id="sumGapQty">0</td>
+                  <td class="sum-amt red" id="sumGapAmt">0</td>
+                </tr>
+                <tr id="sumRetRow">
+                  <td class="sum-label" id="sumRetLabel">📤 OUT returned (da dung)</td>
+                  <td class="sum-qty" id="sumRetQty">0</td>
+                  <td class="sum-amt red" id="sumRetAmt">0</td>
+                </tr>
+                <tr id="sumNetRow">
+                  <td class="sum-label net" id="sumNetLabel">💰 NET CON LAI (Remaining)</td>
+                  <td class="sum-qty net" id="sumNetQty">0</td>
+                  <td class="sum-amt net" id="sumNetAmt">0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="card-section">
+          <div class="section-header">
+            <div class="section-title" id="chartTitle">📊 Bieu do Missing theo ngay</div>
+            <div class="chart-legend">
+              <span class="legend-pill blue">
+                <span class="legend-dot blue"></span>
+                <span id="leg1">IN binh thuong</span>
+              </span>
+              <span class="legend-pill red">
+                <span class="legend-dot red"></span>
+                <span id="leg2">IN > 5000 THB - canh bao</span>
+              </span>
+              <span class="legend-pill gray">
+                <span class="legend-dot gray"></span>
+                <span id="leg3">OUT MISSING</span>
+              </span>
+            </div>
+          </div>
+          <div class="chart-container"><canvas id="chartMissing"></canvas></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ===== DETAIL PAGE ===== -->
+    <div id="pageDetail" class="page-detail">
+      <div class="detail-header">
+        <div class="detail-header-left">
+          <button class="back-btn" onclick="app.goBack()" id="backBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Quay lai Dashboard
+          </button>
+          <div class="detail-title-wrap">
+            <span class="detail-title" id="detailTitle">Chi tiet</span>
+            <span class="detail-badge" id="detailBadge">0</span>
+          </div>
+        </div>
+        <div class="detail-header-right">
+          <button class="btn btn-secondary" id="btnExcel" onclick="app.exportExcel(app.detailType)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+          <button class="btn btn-success" id="btnPush" onclick="app.pushSheet(app.detailType)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Push
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-content">
+        <div class="detail-note-box" id="detailNote"></div>
+        <div style="font-size:11px;color:var(--text-subtle);padding:4px 0" id="periodInfoDetail"></div>
+        <div class="push-info-bar">
+          <span class="push-info" id="pushInfo">0 dong da tick</span>
+        </div>
+        <div class="table-wrap">
+          <div class="table-inner">
+            <div class="table-container">
+              <table class="data-table">
+                <thead><tr id="tblHead"></tr></thead>
+                <tbody id="tblBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main-wrapper -->
+</div><!-- end app-shell -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- Product Detail Modal -->
+<div class="modal" id="modalDetail">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title" id="mdTitle">Product detail</div>
+<button class="modal-close" onclick="app.closeDetail()">×</button>
+</div>
+<div class="modal-body" id="mdBody"></div>
+</div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal" id="modalImg">
+<div class="modal-content" style="max-width:500px">
+<div class="modal-header">
+<div class="modal-title" id="imgTitle">🖼️ Xem hinh anh</div>
+<button class="modal-close" onclick="document.getElementById('modalImg').classList.remove('active')">×</button>
+</div>
+<div class="modal-body" style="text-align:center">
+<img id="mdImg" src="" style="max-width:100%;max-height:60vh;border-radius:12px">
+</div>
+</div>
+</div>
+
+<!-- Scan Modal -->
+<div class="modal" id="modalQR">
+<div class="modal-content" style="max-width:500px">
+<div class="modal-header">
+<div class="modal-title" id="scanTitle">📷 Scan Barcode</div>
+<button class="modal-close" onclick="app.closeQR()">×</button>
+</div>
+<div class="modal-body">
+<div style="margin-bottom:14px;color:var(--text-muted);font-size:13px" id="scanHint">Scan barcode bang sung hoac nhap SKU, nhan Enter</div>
+<input type="text" id="scanInput" placeholder="SKU..."
+style="width:100%;padding:14px 16px;border-radius:10px;border:2px solid var(--border-strong);background:var(--bg-input);color:var(--text);font-size:18px;font-weight:600;outline:none;box-sizing:border-box">
+<div class="qr-result" id="qrResult" style="display:none;margin-top:14px">
+<div style="font-weight:700;margin-bottom:8px;color:var(--accent);font-size:16px" id="qrSku"></div>
+<div id="qrInfo" style="line-height:1.8"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl">
+<span id="toastIcon">✓</span>
+<span id="toastMsg"></span>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
