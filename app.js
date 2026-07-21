@@ -462,7 +462,21 @@ function calculateMetrics(){
     r.amt_out_used=qty_out_used*r.price_unit;
     r.amt_remaining=r.qty_remaining*r.price_unit;
 
-    // Filter into groups for display
+    // OUT MISSING Detail (always, regardless of IN)
+    if(r.qty_out_gap>0){
+      allOutGrouped.push({
+        sku_code:r.sku_code,
+        product_name:r.product_name,
+        qty_moving:r.qty_out_gap,
+        price_unit:r.price_unit,
+        amt_moving:r.qty_out_gap*r.price_unit,
+        ts_moving_done:r.latest_date_out,
+        area_from:r.area_from,
+        area_to:r.area_to
+      });
+    }
+
+    // IN-related groups
     if(r.qty_in_curr>0){
       // IN MISSING Detail
       allInGrouped.push({
@@ -478,20 +492,6 @@ function calculateMetrics(){
       
       summaryMetrics.inQty+=r.qty_in_curr;
       summaryMetrics.inAmt+=r.amt_in;
-
-      // OUT MISSING Detail
-      if(r.qty_out_used>0){
-        allOutGrouped.push({
-          sku_code:r.sku_code,
-          product_name:r.product_name,
-          qty_moving:r.qty_out_used,
-          price_unit:r.price_unit,
-          amt_moving:r.amt_out_used,
-          ts_moving_done:r.latest_date_out,
-          area_from:r.area_from,
-          area_to:r.area_to
-        });
-      }
 
       summaryMetrics.gapQty+=qty_out_gap_used;
       summaryMetrics.gapAmt+=r.amt_out_used;
