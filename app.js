@@ -430,7 +430,7 @@ function calculateMetrics(){
 
   // C+D. Parse OUT (all within period)
   var outAll=filterByPeriod(allOut,'ts_created',periodInStart,periodInEnd);
-  console.log('OUT: total='+allOut.length+', inPeriod='+outAll.length+', grouped='+Object.keys(skuMap).filter(function(k){return skuMap[k].qty_out_gap>0;}).length);
+  alert('OUT debug: total='+allOut.length+', inPeriod='+outAll.length);
   outAll.forEach(function(r){
     if(!r.sku_code)return;
     var s=getOrCreateSku(r.sku_code, r.product_name, r.price_unit);
@@ -562,6 +562,7 @@ async function refresh(){
   updateChart();
   document.getElementById('loadingOverlay').classList.add('hidden');
   toast(T.ok+' (IN:'+allIn.length+' / OUT:'+allOut.length+' / PREV:'+allPrev.length+')','success');
+  setTimeout(function(){alert('OUT: total='+allOut.length+' grouped='+allOutGrouped.length+' pend='+allPendGrouped.length);},500);
 }
 
 function formatDM(d){
