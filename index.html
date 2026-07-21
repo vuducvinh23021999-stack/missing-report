@@ -12,6 +12,18 @@
 </head>
 <body class="dark">
 
+<!-- PASSWORD LOCK -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <div style="font-size:18px;font-weight:700;margin-bottom:4px">Nhap mat khau</div>
+    <div style="font-size:12px;color:#888;margin-bottom:16px">De truy cap SKU MISSING Tracker</div>
+    <input type="password" id="lockInput" class="lock-input" placeholder="Mat khau..." autofocus>
+    <div id="lockError" style="color:#ef4444;font-size:12px;display:none;margin-top:8px">Sai mat khau!</div>
+    <button class="lock-btn" onclick="app.unlock()">Mo khoa</button>
+  </div>
+</div>
+
 <!-- LOADING -->
 <div class="loading-overlay" id="loadingOverlay">
 <div style="text-align:center">

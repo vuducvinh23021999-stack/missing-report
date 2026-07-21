@@ -173,5 +173,14 @@ body.light .theme-toggle .icon-sun{display:block}.body.light .theme-toggle .icon
 .toast.success{border-color:rgba(74,222,128,.3)}.toast.error{border-color:rgba(248,113,113,.3)}.toast.info{border-color:var(--accent)}
 .qr-result{margin-top:14px;padding:14px;background:var(--bg-input);border-radius:var(--radius);font-size:13px;line-height:1.6}
 
+/* PASSWORD LOCK */
+.lock-overlay{position:fixed;inset:0;background:var(--bg-2);display:flex;align-items:center;justify-content:center;z-index:99999}
+.lock-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;width:320px;text-align:center}
+.lock-icon{font-size:40px;margin-bottom:12px}
+.lock-input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-input);color:var(--text);font-size:15px;outline:none;transition:border .2s}
+.lock-input:focus{border-color:var(--accent)}
+.lock-btn{width:100%;margin-top:12px;padding:12px;background:var(--accent);color:#000;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer}
+.lock-btn:hover{opacity:.9}
+
 /* RESPONSIVE */
 @media(max-width:768px){.sidebar{display:none}.topbar{padding:10px 16px}.topbar-center{display:none}.container{padding:16px}.stats-grid{grid-template-columns:1fr}}

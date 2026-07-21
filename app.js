@@ -1,6 +1,9 @@
 (function(){
 'use strict';
 
+// ===== PASSWORD =====
+var _PASSWORD='123456';
+
 // ===== CONFIG =====
 var SHEET_ID  ='1D9A-q2kAEpM6TX-V5jCvm2tPZYhv1V4Ia4o66K7tCis';
 var PUB_ID    = '2PACX-1vSPN5fVv7WDj6hI8L2-Yp-B6noDOlTcDYxuAtaezKLr02kn8UStXylsyDxtN0DC5Wc0izT-KSFXKhsv';
@@ -1028,11 +1031,23 @@ function toggleTheme(){
   }
 }
 
+// ===== UNLOCK =====
+function unlock(){
+  var pwd=document.getElementById('lockInput').value;
+  if(pwd===_PASSWORD){
+    document.getElementById('lockOverlay').style.display='none';
+    var saved=localStorage.getItem('theme');if(saved==='light')document.body.classList.add('light');setLang('vi');
+    refresh();
+  } else {
+    document.getElementById('lockError').style.display='block';
+  }
+}
+document.getElementById('lockInput').addEventListener('keydown',function(e){if(e.key==='Enter')unlock();});
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',function(){
   var saved=localStorage.getItem('theme');if(saved==='light')document.body.classList.add('light');setLang('vi');
-  refresh();
-  // Auto refresh removed, manual only
+  // wait for unlock
 });
 
 // ===== EXPORT APP =====
@@ -1042,6 +1057,6 @@ window.app={
   showItem:showItem,toggleChk:toggleChk,
   pushSheet:pushSheet,exportExcel:exportExcel,
   openQR:openQR,closeQR:closeQR,
-  closeDetail:closeDetail,previewImg:previewImg,toggleTheme:toggleTheme
+  closeDetail:closeDetail,previewImg:previewImg,toggleTheme:toggleTheme,unlock:unlock
 };
 })();
