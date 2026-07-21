@@ -116,9 +116,9 @@ function calcPeriods(){
     y-=1;
   }
   
-  // Current Period IN = 16th previous month → end of current month
+  // Current Period IN = 16th previous month → 15th current month
   periodInStart=new Date(y,baseM,16,0,0,0,0);
-  periodInEnd=new Date(y,baseM+2,0,23,59,59,999);
+  periodInEnd=new Date(y,baseM+1,15,23,59,59,999);
   
   // Previous Period IN
   var prevY=y, prevM=baseM-1;
@@ -130,9 +130,9 @@ function calcPeriods(){
   gapStart=new Date(y,baseM,16,0,0,0,0);
   gapEnd=new Date(y,baseM+1,0,23,59,59,999);
   
-  // Returned Period
+  // Returned Period (OUT in 1st → end of current month)
   returnedStart=new Date(y,baseM+1,1,0,0,0,0);
-  returnedEnd=new Date(periodInEnd); // end of current month (31/07)
+  returnedEnd=new Date(y,baseM+2,0,23,59,59,999); // 31/07
   
   periodLabel=pad(periodInStart.getDate())+'/'+pad(periodInStart.getMonth()+1)+' → '+
     pad(periodInEnd.getDate())+'/'+pad(periodInEnd.getMonth()+1);
@@ -429,47 +429,70 @@ function calculateMetrics(){
     s.qty_in_prev+=parseFloat(r.qty_moving)||0;
   });
 
-  // C+D. Parse OUT (all within period)
-  var outAll=filterByPeriod(allOut,'ts_created',periodInStart,periodInEnd);
-  window._outPeriodCnt=outAll.length;
-  outAll.forEach(function(r){
+  // C. Parse OUT gap (16th → end of previous month) — covers prev IN first
+  var gapOut=filterByPeriod(allOut,'ts_created',gapStart,gapEnd);
+  // D. Parse OUT returned (1st → end of current month) — covers current IN
+  var retOut=filterByPeriod(allOut,'ts_created',returnedStart,returnedEnd);
+
+  // Merge for total count in period
+  var outPeriod=gapOut.concat(retOut).filter(function(r,idx,self){
+    return self.indexOf(r)===idx;
+  });
+  window._outPeriodCnt=gapOut.length+retOut.length;
+
+  gapOut.forEach(function(r){
     if(!r.sku_code)return;
     var s=getOrCreateSku(r.sku_code, r.product_name, r.price_unit);
     s.qty_out_gap+=parseFloat(r.qty_moving)||0;
     s.area_from=r.area_from||s.area_from;
     var dt=parseGDate(r.ts_created);
-    if(dt&&(!s.latest_date_out||dt>s.latest_date_out)){
-      s.latest_date_out=dt;
-    }
+    if(dt&&(!s.latest_date_out||dt>s.latest_date_out))s.latest_date_out=dt;
+  });
+  retOut.forEach(function(r){
+    if(!r.sku_code)return;
+    var s=getOrCreateSku(r.sku_code, r.product_name, r.price_unit);
+    s.qty_out_returned+=parseFloat(r.qty_moving)||0;
+    s.area_from=r.area_from||s.area_from;
+    var dt=parseGDate(r.ts_created);
+    if(dt&&(!s.latest_date_out||dt>s.latest_date_out))s.latest_date_out=dt;
   });
 
   // 2. Perform logic calculations for each SKU
   for(var key in skuMap){
     var r=skuMap[key];
-    
-    // Gap logic
-    var qty_used_for_prev=Math.min(r.qty_out_gap, r.qty_in_prev);
-    var qty_out_gap_used=r.qty_in_curr>0?Math.min(r.qty_in_curr, r.qty_out_gap - qty_used_for_prev):0;
-    var qty_out_used=qty_used_for_prev+qty_out_gap_used;
-    var qty_remaining=r.qty_in_curr - qty_out_gap_used;
 
-    r.qty_used_for_prev=qty_used_for_prev;
-    r.qty_out_gap_used=qty_out_gap_used;
-    r.qty_out_used=qty_out_used;
-    r.qty_remaining=Math.max(0,qty_remaining);
+    // Gap logic:
+    // 1. Gap OUT covers prev IN first
+    var used_for_prev=Math.min(r.qty_out_gap, r.qty_in_prev);
+    var gap_left=Math.max(0, r.qty_out_gap - used_for_prev);
+    // 2. Remaining gap OUT + returned OUT cover current IN
+    var total_out_available=gap_left + r.qty_out_returned;
+    var used_for_curr=r.qty_in_curr>0 ? Math.min(r.qty_in_curr, total_out_available) : 0;
+    // Split used_for_curr into gap part and returned part
+    var gap_used_for_curr=Math.min(gap_left, used_for_curr);
+    var ret_used_for_curr=used_for_curr - gap_used_for_curr;
+    var total_out_used=used_for_prev + used_for_curr;
+    var qty_remaining=r.qty_in_curr - used_for_curr;
+
+    r.qty_used_for_prev=used_for_prev;
+    r.qty_gap_used_for_curr=gap_used_for_curr;
+    r.qty_ret_used_for_curr=ret_used_for_curr;
+    r.qty_out_used=total_out_used;
+    r.qty_remaining=Math.max(0, qty_remaining);
 
     r.amt_in=r.qty_in_curr*r.price_unit;
-    r.amt_out_used=qty_out_used*r.price_unit;
+    r.amt_out_used=total_out_used*r.price_unit;
     r.amt_remaining=r.qty_remaining*r.price_unit;
 
     // OUT MISSING Detail (only for SKUs with IN in period)
-    if(r.qty_in_curr>0 && r.qty_out_gap>0){
+    var total_out=r.qty_out_gap + r.qty_out_returned;
+    if(r.qty_in_curr>0 && total_out>0){
       allOutGrouped.push({
         sku_code:r.sku_code,
         product_name:r.product_name,
-        qty_moving:r.qty_out_gap,
+        qty_moving:total_out,
         price_unit:r.price_unit,
-        amt_moving:r.qty_out_gap*r.price_unit,
+        amt_moving:total_out*r.price_unit,
         ts_moving_done:r.latest_date_out,
         area_from:r.area_from,
         area_to:r.area_to
@@ -489,14 +512,15 @@ function calculateMetrics(){
         area_from:r.area_from||'WH-MAIN',
         area_to:r.area_to||'WH-MISSING'
       });
-      
+
       summaryMetrics.inQty+=r.qty_in_curr;
       summaryMetrics.inAmt+=r.amt_in;
 
-      summaryMetrics.gapQty+=qty_out_gap_used;
-      summaryMetrics.gapAmt+=r.amt_out_used;
-      summaryMetrics.retQty+=0;
-      summaryMetrics.retAmt+=0;
+      // gapQty = gap OUT used (for prev + for curr), retQty = returned OUT used
+      summaryMetrics.gapQty+=used_for_prev + gap_used_for_curr;
+      summaryMetrics.gapAmt+=(used_for_prev + gap_used_for_curr)*r.price_unit;
+      summaryMetrics.retQty+=ret_used_for_curr;
+      summaryMetrics.retAmt+=ret_used_for_curr*r.price_unit;
 
       // CHƯA OUT (Pending) Detail
       if(r.qty_remaining>0){
@@ -510,10 +534,10 @@ function calculateMetrics(){
           area_from:r.area_from||'WH-MISSING',
           area_to:r.area_to||'WH-MAIN',
           _inQty:r.qty_in_curr,
-          _outQty:r.qty_out_used
+          _outQty:total_out_used
         });
       }
-      
+
       summaryMetrics.netQty+=r.qty_remaining;
       summaryMetrics.netAmt+=r.amt_remaining;
     }
@@ -608,28 +632,32 @@ function updateChart(){
   if(typeof Chart==='undefined')return;
   try{
   var ctx=document.getElementById('chartMissing').getContext('2d');
-  var start=new Date(periodInStart), end=new Date(periodInEnd);
+  var start=new Date(periodInStart);
+  var inEnd=new Date(periodInEnd);        // IN chỉ đến 15/07
+  var outEnd=new Date(returnedEnd);       // OUT đến 31/07
   var now=new Date();
-  if(end>now)end=now;
+  if(inEnd>now)inEnd=now;
+  if(outEnd>now)outEnd=now;
 
-  // Build per-day sums from period-filtered raw data
+  // Build per-day sums
   var dayIn={}, dayOut={};
   allIn.forEach(function(r){
     var dt=parseGDate(r.ts_created);
-    if(!dt||dt<start||dt>end)return;
+    if(!dt||dt<start||dt>inEnd)return;
     var key=dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
     dayIn[key]=(dayIn[key]||0)+(parseFloat(r.amt_moving)||0);
   });
   allOut.forEach(function(r){
     var dt=parseGDate(r.ts_moving_done);
-    if(!dt||dt<start||dt>end)return;
+    if(!dt||dt<start||dt>outEnd)return;
     var key=dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
     dayOut[key]=(dayOut[key]||0)+(parseFloat(r.amt_moving)||0);
   });
 
   var labels=[],inAmt=[],inColor=[],outAmt=[],dateKeys=[];
   var cur=new Date(start);
-  while(cur<=end){
+  var chartEnd=outEnd>inEnd?outEnd:inEnd;
+  while(cur<=chartEnd){
     labels.push(cur.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}));
     dateKeys.push(new Date(cur));
     var key=cur.getFullYear()+'-'+cur.getMonth()+'-'+cur.getDate();
