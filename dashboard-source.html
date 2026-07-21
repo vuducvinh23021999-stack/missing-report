@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKU MISSING Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" async></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" async></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" async></script>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+<div style="text-align:center">
+<div class="spinner"></div>
+<div style="color:#888" id="loadingText">Dang tai du lieu...</div><div style="color:#666;font-size:12px;margin-top:6px" id="statusText"></div>
+</div>
+</div>
+<script>setTimeout(function(){var e=document.getElementById('loadingOverlay');if(e)e.classList.add('hidden');},15000);</script>
+
+<!-- ======================== TOP HEADER ======================== -->
+<header class="top-header" style="flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+<div style="display:flex;align-items:center;gap:14px">
+<div class="logo">SKU<span>Tracker</span></div>
+<div class="live-badge"><span class="refresh-dot"></span> <span id="liveText">Live</span></div>
+<div style="font-size:11px;color:#555" id="periodInfo"></div>
+</div>
+<div class="top-right">
+<select class="lang-select" id="langSel" onchange="app.setLang(this.value)">
+<option value="vi">Tieng Viet</option>
+<option value="en">English</option>
+<option value="th">ภาษาไทย</option>
+</select>
+<button class="btn btn-primary" onclick="app.refresh()" id="refreshBtn">🔄 Refresh</button>
+</div>
+</header>
+
+<div style="background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.04);padding:6px 24px;font-size:11px;color:#555;display:flex;gap:16px;flex-wrap:wrap" id="statusBar"></div>
+
+<!-- ======================== MAIN PAGE ======================== -->
+<div id="pageMain" class="page-main">
+<div class="container">
+
+<!-- Search + QR -->
+<div class="search-bar">
+<span>🔍</span>
+<input type="text" id="searchInput" placeholder="Tim SKU, Ten san pham...">
+<button class="btn btn-qr" onclick="app.openQR()" id="scanBtn">📷 Scan</button>
+</div>
+
+<!-- 3 Stat cards -->
+<div class="stats-grid">
+<div class="stat-card in" id="cardIn" onclick="app.goDetail('in')">
+<div>
+<div class="stat-title" id="titleIn">📥 TONG SKU IN MISSING</div>
+<div class="stat-count" id="countIn">0</div>
+<div class="stat-amount"><span id="amountIn">0</span> THB</div>
+</div>
+<button class="stat-excel-btn" onclick="event.stopPropagation();app.exportExcel('in')" id="excelIn">📥 Export</button>
+<div class="stat-click-hint" id="hintIn">Click xem chi tiet →</div>
+</div>
+
+<div class="stat-card out" id="cardOut" onclick="app.goDetail('out')">
+<div>
+<div class="stat-title" id="titleOut">📤 TONG SKU OUT MISSING</div>
+<div class="stat-count" id="countOut">0</div>
+<div class="stat-amount"><span id="amountOut">0</span> THB</div>
+</div>
+<button class="stat-excel-btn" onclick="event.stopPropagation();app.exportExcel('out')" id="excelOut">📥 Export</button>
+<div class="stat-click-hint" id="hintOut">Click xem chi tiet →</div>
+</div>
+
+<div class="stat-card pending" id="cardPending" onclick="app.goDetail('pending')">
+<div>
+<div class="stat-title" id="titlePending">⏳ TONG SKU CHUA OUT</div>
+<div class="stat-count" id="countPending">0</div>
+<div class="stat-amount"><span id="amountPending">0</span> THB</div>
+</div>
+<button class="stat-excel-btn" onclick="event.stopPropagation();app.exportExcel('pending')" id="excelPend">📥 Export</button>
+<div class="stat-click-hint" id="hintPend">Click xem chi tiet →</div>
+</div>
+</div>
+
+
+<!-- Summary Table Card -->
+<div class="chart-card" style="margin-bottom: 24px;">
+<div class="chart-header">
+<div class="chart-title" id="sumTitle">📊 Bảng tổng hợp dữ liệu kỳ này</div>
+<div style="font-size:12px;color:#aaa" id="summaryPeriod"></div>
+</div>
+<div style="padding: 16px; overflow-x: auto;">
+<table class="summary-table" style="width:100%; border-collapse: collapse; text-align: left; color: #e8e8f0; font-size: 13px;">
+<thead>
+<tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #888; font-size: 11px;">
+<th style="padding: 10px 16px;">Hạng mục</th>
+<th style="padding: 10px 16px; text-align: right;">Số lượng (Qty)</th>
+<th style="padding: 10px 16px; text-align: right;">Số tiền (Amount ฿)</th>
+</tr>
+</thead>
+<tbody>
+<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+<td style="padding: 12px 16px; font-weight: 600;" id="sumInLabel">📥 IN MISSING (16/06–15/07)</td>
+<td style="padding: 12px 16px; text-align: right; font-weight: 600;" id="sumInQty">0</td>
+<td style="padding: 12px 16px; text-align: right; font-weight: 600; color: #60a5fa;" id="sumInAmt">0</td>
+</tr>
+<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+<td style="padding: 12px 16px;" id="sumGapLabel">📤 OUT gap lastmonth (16–30/06, đã dùng)</td>
+<td style="padding: 12px 16px; text-align: right;" id="sumGapQty">0</td>
+<td style="padding: 12px 16px; text-align: right; color: #f87171;" id="sumGapAmt">0</td>
+</tr>
+<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+<td style="padding: 12px 16px;" id="sumRetLabel">📤 OUT returned (01–15/07, đã dùng)</td>
+<td style="padding: 12px 16px; text-align: right;" id="sumRetQty">0</td>
+<td style="padding: 12px 16px; text-align: right; color: #f87171;" id="sumRetAmt">0</td>
+</tr>
+<tr style="background: rgba(255,255,255,0.02); font-weight: 700;">
+<td style="padding: 14px 16px; font-size: 14px; color: #10b981;" id="sumNetLabel">💰 NET CÒN LẠI (Remaining)</td>
+<td style="padding: 14px 16px; text-align: right; font-size: 14px; color: #10b981;" id="sumNetQty">0</td>
+<td style="padding: 14px 16px; text-align: right; font-size: 14px; color: #10b981;" id="sumNetAmt">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- Chart -->
+<div class="chart-card">
+<div class="chart-header">
+<div class="chart-title" id="chartTitle">📊 Bieu do Missing theo ngay</div>
+<div class="chart-legend">
+<span class="legend-item"><span class="legend-dot blue"></span> <span id="leg1">IN bin thuong</span></span>
+<span class="legend-item"><span class="legend-dot red"></span> <span id="leg2">IN > 5000 THB - canh bao do</span></span>
+<span class="legend-item"><span class="legend-dot gray"></span> <span id="leg3">OUT MISSING</span></span>
+</div>
+</div>
+<div class="chart-container"><canvas id="chartMissing"></canvas></div>
+</div>
+</div>
+</div>
+
+<!-- ======================== DETAIL PAGE ======================== -->
+<div id="pageDetail" class="page-detail">
+
+<!-- Detail Header -->
+<div class="detail-header">
+<div class="detail-header-left">
+<button class="back-btn" onclick="app.goBack()" id="backBtn">← Quay lai Dashboard</button>
+<div class="detail-title-wrap">
+<span class="detail-title" id="detailTitle">Chi tiet</span>
+<span class="detail-badge" id="detailBadge">0</span>
+</div>
+</div>
+<div class="detail-header-right">
+<button class="btn btn-secondary" id="btnExcel" onclick="app.exportExcel(app.detailType)">📥 Export</button>
+<button class="btn btn-success" id="btnPush" onclick="app.pushSheet(app.detailType)">📤 Push</button>
+</div>
+</div>
+
+<div class="detail-content">
+<div class="detail-note-box" id="detailNote"></div>
+<div style="font-size:11px;color:#555;padding:4px 0" id="periodInfoDetail"></div>
+<div class="push-info-bar">
+<span class="push-info" id="pushInfo">0 dong da tick</span>
+</div>
+
+<div class="table-wrap">
+<div class="table-inner">
+<div class="table-container">
+<table class="data-table">
+<thead><tr id="tblHead"></tr></thead>
+<tbody id="tblBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ======================== MODALS ======================== -->
+
+<!-- Product Detail Modal -->
+<div class="modal" id="modalDetail">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title" id="mdTitle">Product detail</div>
+<button class="modal-close" onclick="app.closeDetail()">×</button>
+</div>
+<div class="modal-body" id="mdBody"></div>
+</div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal" id="modalImg">
+<div class="modal-content" style="max-width:500px">
+<div class="modal-header">
+<div class="modal-title" id="imgTitle">🖼️ Xem hinh anh</div>
+<button class="modal-close" onclick="document.getElementById('modalImg').classList.remove('active')">×</button>
+</div>
+<div class="modal-body" style="text-align:center">
+<img id="mdImg" src="" style="max-width:100%;max-height:60vh;border-radius:12px">
+</div>
+</div>
+</div>
+
+<!-- Scan Modal -->
+<div class="modal" id="modalQR">
+<div class="modal-content" style="max-width:500px">
+<div class="modal-header">
+<div class="modal-title" id="scanTitle">📷 Scan Barcode</div>
+<button class="modal-close" onclick="app.closeQR()">×</button>
+</div>
+<div class="modal-body">
+<div style="margin-bottom:14px;color:#888;font-size:13px" id="scanHint">Scan barcode bang sung hoac nhap SKU, nhan Enter</div>
+<input type="text" id="scanInput" placeholder="SKU..."
+style="width:100%;padding:14px 16px;border-radius:10px;border:2px solid #444;background:#252525;color:#fff;font-size:18px;font-weight:600;outline:none;box-sizing:border-box">
+<div class="qr-result" id="qrResult" style="display:none;margin-top:14px">
+<div style="font-weight:700;margin-bottom:8px;color:#60a5fa;font-size:16px" id="qrSku"></div>
+<div id="qrInfo" style="line-height:1.8"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl">
+<span id="toastIcon">✓</span>
+<span id="toastMsg"></span>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
