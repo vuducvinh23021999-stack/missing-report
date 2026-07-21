@@ -597,10 +597,7 @@ async function refresh(){
   updateChart();
   document.getElementById('loadingOverlay').classList.add('hidden');
   toast(T.ok+' (IN:'+allIn.length+' / OUT:'+allOut.length+' / PREV:'+allPrev.length+')','success');
-  var db=document.getElementById('debugBar');
-  if(db)db.textContent='OUT: total='+allOut.length+', inPeriod='+_outPeriodCnt+', grouped='+allOutGrouped.length+', pend='+allPendGrouped.length+
-    ' | IN: total='+allIn.length+', period='+_inPeriodCnt+', grouped='+allInGrouped.length+
-    ' | Period: '+periodLabel;
+
 }
 
 function formatDM(d){
