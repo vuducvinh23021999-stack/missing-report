@@ -116,9 +116,9 @@ function calcPeriods(){
     y-=1;
   }
   
-  // Current Period IN
+  // Current Period IN = 16th previous month → end of current month
   periodInStart=new Date(y,baseM,16,0,0,0,0);
-  periodInEnd=new Date(y,baseM+1,15,23,59,59,999);
+  periodInEnd=new Date(y,baseM+2,0,23,59,59,999);
   
   // Previous Period IN
   var prevY=y, prevM=baseM-1;
@@ -426,29 +426,14 @@ function calculateMetrics(){
     s.qty_in_prev+=parseFloat(r.qty_moving)||0;
   });
 
-  // C. Parse OUT gap
-  var gapOut=filterByPeriod(allOut,'ts_created',gapStart,gapEnd).filter(function(r){
+  // C+D. Parse OUT (all from wh-missing within period)
+  var outAll=filterByPeriod(allOut,'ts_created',periodInStart,periodInEnd).filter(function(r){
     return String(r.area_from).toLowerCase().trim()==='wh-missing';
   });
-  gapOut.forEach(function(r){
+  outAll.forEach(function(r){
     if(!r.sku_code)return;
     var s=getOrCreateSku(r.sku_code, r.product_name, r.price_unit);
     s.qty_out_gap+=parseFloat(r.qty_moving)||0;
-    s.area_from=r.area_from||s.area_from;
-    var dt=parseGDate(r.ts_created);
-    if(dt&&(!s.latest_date_out||dt>s.latest_date_out)){
-      s.latest_date_out=dt;
-    }
-  });
-
-  // D. Parse OUT returned
-  var retOut=filterByPeriod(allOut,'ts_created',returnedStart,returnedEnd).filter(function(r){
-    return String(r.area_from).toLowerCase().trim()==='wh-missing';
-  });
-  retOut.forEach(function(r){
-    if(!r.sku_code)return;
-    var s=getOrCreateSku(r.sku_code, r.product_name, r.price_unit);
-    s.qty_out_returned+=parseFloat(r.qty_moving)||0;
     s.area_from=r.area_from||s.area_from;
     var dt=parseGDate(r.ts_created);
     if(dt&&(!s.latest_date_out||dt>s.latest_date_out)){
@@ -462,31 +447,16 @@ function calculateMetrics(){
     
     // Gap logic
     var qty_used_for_prev=Math.min(r.qty_out_gap, r.qty_in_prev);
-    var qty_leftover=r.qty_out_gap - qty_used_for_prev;
-    
-    // Only count gap and returned if the SKU has IN in current period
-    var qty_out_gap_curr=r.qty_in_curr>0?qty_leftover:0;
-    var qty_out_ret_curr=r.qty_in_curr>0?r.qty_out_returned:0;
-    
-    // Cap allocation sequentially
-    var qty_out_gap_used=Math.min(r.qty_in_curr, qty_out_gap_curr);
-    var qty_out_returned_used=Math.min(r.qty_in_curr - qty_out_gap_used, qty_out_ret_curr);
-    var qty_out_used=qty_out_gap_used+qty_out_returned_used;
-    
-    var qty_remaining=r.qty_in_curr - qty_out_used;
+    var qty_out_gap_used=r.qty_in_curr>0?Math.min(r.qty_in_curr, r.qty_out_gap - qty_used_for_prev):0;
+    var qty_out_used=qty_used_for_prev+qty_out_gap_used;
+    var qty_remaining=r.qty_in_curr - qty_out_gap_used;
 
     r.qty_used_for_prev=qty_used_for_prev;
-    r.qty_leftover=qty_leftover;
-    r.qty_out_gap_curr=qty_out_gap_curr;
-    r.qty_out_ret_curr=qty_out_ret_curr;
     r.qty_out_gap_used=qty_out_gap_used;
-    r.qty_out_returned_used=qty_out_returned_used;
     r.qty_out_used=qty_out_used;
-    r.qty_remaining=qty_remaining;
+    r.qty_remaining=Math.max(0,qty_remaining);
 
     r.amt_in=r.qty_in_curr*r.price_unit;
-    r.amt_out_gap_used=qty_out_gap_used*r.price_unit;
-    r.amt_out_returned_used=qty_out_returned_used*r.price_unit;
     r.amt_out_used=qty_out_used*r.price_unit;
     r.amt_remaining=r.qty_remaining*r.price_unit;
 
@@ -517,16 +487,14 @@ function calculateMetrics(){
           amt_moving:r.amt_out_used,
           ts_moving_done:r.latest_date_out,
           area_from:r.area_from||'WH-MISSING',
-          area_to:r.area_to||'WH-MAIN',
-          _qty_gap:qty_out_gap_used,
-          _qty_ret:qty_out_returned_used
+          area_to:r.area_to||'WH-MAIN'
         });
       }
 
       summaryMetrics.gapQty+=qty_out_gap_used;
-      summaryMetrics.gapAmt+=r.amt_out_gap_used;
-      summaryMetrics.retQty+=qty_out_returned_used;
-      summaryMetrics.retAmt+=r.amt_out_returned_used;
+      summaryMetrics.gapAmt+=r.amt_out_used;
+      summaryMetrics.retQty+=0;
+      summaryMetrics.retAmt+=0;
 
       // CHƯA OUT (Pending) Detail
       if(r.qty_remaining>0){
@@ -859,8 +827,7 @@ function showItem(type,idx){
     '<div class="detail-row"><div class="label">'+T.labelTenSP+'</div><div class="value">'+E(r.product_name||'-')+'</div></div>'+
     '<div class="detail-row"><div class="label">'+T.labelSKU+'</div><div class="value blue">'+E(r.sku_code||'-')+'</div></div>'+
     '<div class="detail-row"><div class="label">'+T.labelSL+'</div><div class="value">'+C(r.qty_moving)+'</div></div>'+
-    (type==='out'?'<div class="detail-row"><div class="label">Qty Gap (used)</div><div class="value">'+C(r._qty_gap||0)+'</div></div>':'')+
-    (type==='out'?'<div class="detail-row"><div class="label">Qty Returned (used)</div><div class="value">'+C(r._qty_ret||0)+'</div></div>':'')+
+    (type==='out'?'<div class="detail-row"><div class="label">Qty OUT</div><div class="value">'+C(r.qty_moving)+'</div></div>':'')+
     (type==='pending'&&r._inQty?'<div class="detail-row"><div class="label">IN Qty</div><div class="value">'+C(r._inQty)+'</div></div>':'')+
     (type==='pending'?'<div class="detail-row"><div class="label">OUT Qty</div><div class="value" style="color:#f87171">'+C(r._outQty||0)+'</div></div>':'')+
     '<div class="detail-row"><div class="label">'+T.labelDG+'</div><div class="value">'+C(r.price_unit)+' THB</div></div>'+
