@@ -562,7 +562,8 @@ async function refresh(){
   updateChart();
   document.getElementById('loadingOverlay').classList.add('hidden');
   toast(T.ok+' (IN:'+allIn.length+' / OUT:'+allOut.length+' / PREV:'+allPrev.length+')','success');
-  setTimeout(function(){alert('OUT: total='+allOut.length+' grouped='+allOutGrouped.length+' pend='+allPendGrouped.length);},500);
+  var db=document.getElementById('debugBar');
+  if(db)db.textContent='OUT: total='+allOut.length+', inPeriod filtered by date='+0+', grouped='+allOutGrouped.length+', pend='+allPendGrouped.length;
 }
 
 function formatDM(d){
