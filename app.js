@@ -257,7 +257,7 @@ function fetchSheet(gid,timeout){
   timeout=timeout||15000;
   return new Promise(function(resolve){
     var cb='gs_cb_'+Math.random().toString(36).substr(2,8);
-    var url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&gid='+gid;
+    var url='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&gid='+gid+'&_='+Date.now();
     window[cb]=function(r){
       try{
         if(!r||!r.table||!r.table.rows){resolve([]);return;}
@@ -324,7 +324,7 @@ function fetchPublishedCSV(gid){
 function fetchImageSheet(){
   return new Promise(function(resolve){
     var cb='icb_'+Math.random().toString(36).substr(2,8);
-    var url='https://docs.google.com/spreadsheets/d/'+IMG_SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&gid='+IMG_GID;
+    var url='https://docs.google.com/spreadsheets/d/'+IMG_SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&gid='+IMG_GID+'&_='+Date.now();
     window[cb]=function(r){
       try{
         if(!r||!r.table||!r.table.rows){resolve({});return;}
