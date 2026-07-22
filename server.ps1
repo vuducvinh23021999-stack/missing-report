@@ -13,7 +13,57 @@ while ($listener.IsListening) {
   if ($req.HttpMethod -eq "OPTIONS") { $res.StatusCode = 204; $res.Close(); continue }
 
   $path = $req.Url.AbsolutePath
-  if ($path -eq "/") { $path = "/app.html" }
+
+  # Proxy: /inv?sku=XXX -> internal WMS
+  if ($path -eq "/inv") {
+    $sku = $req.QueryString["sku"]
+    if ($sku) {
+      $invUrl = "https://internal.buymed.co.th/wms/BK/inventory/sku/detail?sku=$sku&warehouseCode=BK"
+      try {
+        $wc = New-Object System.Net.WebClient
+        $wc.UseDefaultCredentials = $true
+        $wc.Headers.Add("User-Agent", "Mozilla/5.0")
+        $html = $wc.DownloadString($invUrl)
+        $res.ContentType = "application/json; charset=utf-8"
+        # Try to extract location:qty pairs
+        $locations = @()
+        # Pattern: BK02/BK01 + 2 digits + letter + 2 digits + letter + 2 digits
+        $pattern = '(BK\d{2}[A-Z]\d{2}[A-Z]\d{2})'
+        $matches = [regex]::Matches($html, $pattern)
+        foreach ($m in $matches) {
+          $loc = $m.Groups[1].Value
+          # Find qty near location
+          $after = $html.Substring($m.Index + $m.Length, [Math]::Min(80, $html.Length - $m.Index - $m.Length))
+          $qm = [regex]::Match($after, '(\d+)')
+          $qty = if ($qm.Success) { $qm.Groups[1].Value } else { "?" }
+          $locations += "$loc`: $qty"
+        }
+        if ($locations.Count -gt 0) {
+          $json = @{ locations = $locations -join '; ' } | ConvertTo-Json
+        } else {
+          $json = @{ locations = ""; raw = $html.Substring(0, [Math]::Min(300, $html.Length)) } | ConvertTo-Json
+        }
+        $bytes = [Text.Encoding]::UTF8.GetBytes($json)
+        $res.ContentLength64 = $bytes.Length
+        $res.OutputStream.Write($bytes, 0, $bytes.Length)
+      } catch {
+        $res.StatusCode = 502
+        $err = "Proxy error: $_"
+        $bytes = [Text.Encoding]::UTF8.GetBytes($err)
+        $res.ContentLength64 = $bytes.Length
+        $res.OutputStream.Write($bytes, 0, $bytes.Length)
+      }
+    } else {
+      $res.StatusCode = 400
+      $msg = [Text.Encoding]::UTF8.GetBytes("Missing sku param")
+      $res.OutputStream.Write($msg, 0, $msg.Length)
+    }
+    $res.Close()
+    continue
+  }
+
+  # Static files
+  if ($path -eq "/") { $path = "/index.html" }
   $file = Join-Path $root $path.TrimStart('/')
 
   if (Test-Path $file -PathType Leaf) {

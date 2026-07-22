@@ -653,6 +653,7 @@ async function refresh(){
   updateChart();
   document.getElementById('loadingOverlay').classList.add('hidden');
   document.getElementById('periodBtnLabel').textContent=_periodOverride?periodLabel:'Auto';
+  var sb=document.getElementById('syncBtn');if(sb)sb.style.display=_isLocal?'':'none';
   toast(T.ok+' (IN:'+allIn.length+' / OUT:'+allOut.length+' / PREV:'+allPrev.length+')','success');
 
 }
@@ -932,12 +933,99 @@ function showItem(type,idx){
     '<div class="detail-row"><div class="label">'+T.labelTT+'</div><div class="'+amtClass+'">'+C(r.amt_moving)+' THB'+(amtVal>WARN_THRESHOLD?' ⚠️':'')+'</div></div>'+
     '<div class="detail-row"><div class="label">'+T.labelNgayIN+'</div><div class="value">'+(r.ts_created ? D(r.ts_created) : '-')+'</div></div>'+
     (type==='out'?'<div class="detail-row"><div class="label">'+T.labelNgayOUT+'</div><div class="value">'+(r.ts_moving_done ? D(r.ts_moving_done) : '-')+'</div></div>':'')+
-    (locMap[sku.toLowerCase()]?'<div class="detail-row"><div class="label">Ton kho</div><div class="value" style="color:var(--success)">'+E(locMap[sku.toLowerCase()])+'</div></div>':'')+
+    '<div class="detail-row"><div class="label">Ton kho</div><div class="value" id="locVal" style="font-size:13px;color:var(--success)">...</div></div>'+
     '</div></div>';
   document.getElementById('modalDetail').classList.add('active');
+  fetchSkuLocation(r.sku_code,document.getElementById('locVal'));
 }
 function closeDetail(){document.getElementById('modalDetail').classList.remove('active');}
 function previewImg(url){document.getElementById('mdImg').src=url;document.getElementById('modalImg').classList.add('active');}
+
+// ===== FETCH LOCATION (proxy WMS) =====
+var _locCache={};
+var _isLocal=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1';
+function fetchSkuLocation(sku,el){
+  if(!sku||!el)return;
+  var key=sku.toLowerCase();
+  if(locMap[key]){el.innerHTML=E(locMap[key]);return;}
+  if(!_isLocal){el.innerHTML='<span style="color:var(--text-subtle)">-</span>';return;}
+  el.innerHTML='<span style="color:var(--text-subtle)">dang tai...</span>';
+  fetch('/inv?sku='+encodeURIComponent(sku),{signal:AbortSignal.timeout(5000)}).then(function(r){
+    if(!r.ok)throw new Error();
+    return r.json();
+  }).then(function(j){
+    if(j&&j.locations){
+      el.innerHTML=E(j.locations);
+      _locCache[key]=j.locations;
+    } else {
+      el.innerHTML='<span style="color:var(--text-subtle)">Khong co du lieu</span>';
+    }
+  }).catch(function(){
+    el.innerHTML='<span style="color:var(--text-subtle)">-</span>';
+  });
+}
+
+// ===== SYNC LOCATIONS TO SHEET =====
+function syncLocations(){
+  if(!_isLocal){toast('Chi chay duoc khi dung local (start.bat)','error');return;}
+  // Collect all unique SKUs from loaded data
+  var allSku={};
+  [allInGrouped,allOutGrouped,allPendGrouped].forEach(function(arr){
+    arr.forEach(function(r){if(r.sku_code)allSku[r.sku_code.toLowerCase()]=r.sku_code;});
+  });
+  var skus=Object.values(allSku);
+  if(!skus.length){toast('Khong co SKU de dong bo','error');return;}
+
+  var modal=document.getElementById('modalPeriod');
+  modal.querySelector('.modal-header .modal-title').textContent='📤 Dang dong bo location...';
+  modal.querySelector('.modal-body').innerHTML=
+    '<div id="syncProgress" style="margin-bottom:12px;color:var(--text-muted)">0/'+skus.length+'</div>'+
+    '<div id="syncResult" style="max-height:400px;overflow-y:auto;font-size:12px;line-height:1.6"></div>'+
+    '<div style="margin-top:12px;display:flex;gap:10px;justify-content:center">'+
+    '<button class="btn btn-success" id="syncCopyBtn" style="display:none" onclick="app.copySyncCsv()">📋 Copy CSV</button>'+
+    '<button class="btn btn-secondary" onclick="app.closePeriodPicker()">Dong</button></div>';
+  modal.classList.add('active');
+
+  var results=[], idx=0;
+  function fetchNext(){
+    if(idx>=skus.length){
+      var sb=document.getElementById('syncProgress');
+      if(sb)sb.textContent='Hoan thanh! '+results.length+'/'+skus.length;
+      var sr=document.getElementById('syncResult');
+      var csv='sku_code\tlocation\n';
+      sr.innerHTML='';
+      results.forEach(function(rr){
+        csv+=rr.sku+'\t'+rr.loc+'\n';
+        sr.innerHTML+='<div style="padding:3px 0;border-bottom:1px solid var(--border)">'+
+          '<span style="font-weight:600">'+E(rr.sku)+'</span> → '+
+          '<span style="color:var(--success)">'+E(rr.loc||'(trong)')+'</span></div>';
+      });
+      document.getElementById('syncCopyBtn').style.display='inline-flex';
+      window._syncCsv=csv;
+      return;
+    }
+    var sku=skus[idx];
+    var sb=document.getElementById('syncProgress');
+    if(sb)sb.textContent=(idx+1)+'/'+skus.length+' '+sku;
+    fetch('/inv?sku='+encodeURIComponent(sku),{signal:AbortSignal.timeout(8000)}).then(function(r){
+      if(!r.ok)throw new Error();
+      return r.json();
+    }).then(function(j){
+      results.push({sku:sku,loc:(j&&j.locations)||''});
+    }).catch(function(){
+      results.push({sku:sku,loc:''});
+    }).then(function(){
+      idx++;
+      setTimeout(fetchNext,200);
+    });
+  }
+  fetchNext();
+}
+function copySyncCsv(){
+  if(window._syncCsv){
+    try{navigator.clipboard.writeText(window._syncCsv);toast('Da copy CSV! Paste vao sheet column B (SKU) va I (Location)','success');}catch(e){}
+  }
+}
 
 
 
@@ -1126,6 +1214,7 @@ window.app={
   openQR:openQR,closeQR:closeQR,
   closeDetail:closeDetail,previewImg:previewImg,toggleTheme:toggleTheme,unlock:unlock,
   openPeriodPicker:openPeriodPicker,closePeriodPicker:closePeriodPicker,
-  applyPeriod:applyPeriod,resetPeriod:resetPeriod
+  applyPeriod:applyPeriod,resetPeriod:resetPeriod,
+  syncLocations:syncLocations,copySyncCsv:copySyncCsv
 };
 })();
