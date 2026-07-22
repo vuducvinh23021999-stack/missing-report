@@ -86,6 +86,7 @@ var T = I18.vi;
 var lang = 'vi';
 var allIn=[], allOut=[], allPrev=[], allPend=[];
 var imgMap={};
+var locMap={}; // SKU → location string
 var allInGrouped=[], allOutGrouped=[], allPendGrouped=[];
 var summaryMetrics = {
   inQty: 0, inAmt: 0,
@@ -368,7 +369,7 @@ function fetchPublishedCSV(gid){
   });
 }
 
-// ===== FETCH IMAGE SHEET =====
+// ===== FETCH IMAGE + LOCATION SHEET =====
 function fetchImageSheet(){
   return new Promise(function(resolve){
     var cb='icb_'+Math.random().toString(36).substr(2,8);
@@ -376,22 +377,26 @@ function fetchImageSheet(){
     window[cb]=function(r){
       try{
         if(!r||!r.table||!r.table.rows){resolve({});return;}
-        var map={};
+        var map={}, loc={};
         for(var ri=0;ri<r.table.rows.length;ri++){
           var cells=r.table.rows[ri].c;
-          if(!cells||cells.length<8)continue;
+          if(!cells||cells.length<9)continue;
           var sku=cells[1]&&cells[1].v?String(cells[1].v).trim():'';
           var img=cells[7]&&cells[7].v?String(cells[7].v).trim():'';
-          if(sku&&img&&img.indexOf('http')===0)map[sku.toLowerCase()]=img;
+          var locStr=cells[8]&&cells[8].v?String(cells[8].v).trim():'';
+          if(sku){
+            if(img&&img.indexOf('http')===0)map[sku.toLowerCase()]=img;
+            if(locStr)loc[sku.toLowerCase()]=locStr;
+          }
         }
-        resolve(map);
-      }catch(e){resolve({});}
+        resolve({imgs:map,locs:loc});
+      }catch(e){resolve({imgs:{},locs:{}});}
     };
     var s=document.createElement('script');
     s.src=url+'&cb='+Date.now()+Math.random();
-    s.onerror=function(){resolve({});};
+    s.onerror=function(){resolve({imgs:{},locs:{}});};
     document.body.appendChild(s);
-    setTimeout(function(){resolve({});},30000);
+    setTimeout(function(){resolve({imgs:{},locs:{}});},30000);
   });
 }
 
@@ -633,8 +638,12 @@ async function refresh(){
       allPrev=mapAll(r[2]||[]);
     }catch(e2){allIn=[];allOut=[];allPrev=[];}
   }
-  // Fetch images
-  try{imgMap=await fetchImageSheet();}catch(e){}
+  // Fetch images + locations
+  try{
+    var imgRes=await fetchImageSheet();
+    imgMap=imgRes.imgs||{};
+    locMap=imgRes.locs||{};
+  }catch(e){imgMap={};locMap={};}
   var imgCount=Object.keys(imgMap).length;
   calcPeriods();
   calculateMetrics();
@@ -923,12 +932,14 @@ function showItem(type,idx){
     '<div class="detail-row"><div class="label">'+T.labelTT+'</div><div class="'+amtClass+'">'+C(r.amt_moving)+' THB'+(amtVal>WARN_THRESHOLD?' ⚠️':'')+'</div></div>'+
     '<div class="detail-row"><div class="label">'+T.labelNgayIN+'</div><div class="value">'+(r.ts_created ? D(r.ts_created) : '-')+'</div></div>'+
     (type==='out'?'<div class="detail-row"><div class="label">'+T.labelNgayOUT+'</div><div class="value">'+(r.ts_moving_done ? D(r.ts_moving_done) : '-')+'</div></div>':'')+
-    
+    (locMap[sku.toLowerCase()]?'<div class="detail-row"><div class="label">Ton kho</div><div class="value" style="color:var(--success)">'+E(locMap[sku.toLowerCase()])+'</div></div>':'')+
     '</div></div>';
   document.getElementById('modalDetail').classList.add('active');
 }
 function closeDetail(){document.getElementById('modalDetail').classList.remove('active');}
 function previewImg(url){document.getElementById('mdImg').src=url;document.getElementById('modalImg').classList.add('active');}
+
+
 
 // ===== PUSH TO SHEET =====
 function pushSheet(type){
