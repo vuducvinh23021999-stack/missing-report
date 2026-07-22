@@ -94,6 +94,7 @@ var summaryMetrics = {
   netQty: 0, netAmt: 0
 };
 var checked={in:{},out:{},pending:{}};
+var _periodOverride=null; // {start:Date, end:Date} or null for auto
 var qr=null, chart=null, _chartDayFilter=null, _debugOutPeriod=0;
 var detailType=null;
 var periodInStart=null, periodInEnd=null;
@@ -103,6 +104,25 @@ var returnedStart=null, returnedEnd=null;
 var periodLabel='';
 
 function calcPeriods(){
+  if(_periodOverride){
+    periodInStart=new Date(_periodOverride.start);
+    periodInEnd=new Date(_periodOverride.end);
+    periodInEnd.setHours(23,59,59,999);
+    // Prev IN = previous month 16th → 15th
+    var py=periodInStart.getFullYear(), pm=periodInStart.getMonth()-1;
+    if(pm<0){pm=11;py-=1;}
+    prevInStart=new Date(py,pm,16,0,0,0,0);
+    prevInEnd=new Date(periodInStart.getFullYear(),periodInStart.getMonth()-1,15,23,59,59,999);
+    // Gap = same as current IN start → end of that month
+    gapStart=new Date(periodInStart);
+    gapEnd=new Date(periodInStart.getFullYear(),periodInStart.getMonth()+1,0,23,59,59,999);
+    // Returned = 1st of next month → periodInEnd's month end
+    returnedStart=new Date(periodInStart.getFullYear(),periodInStart.getMonth()+1,1,0,0,0,0);
+    returnedEnd=new Date(periodInEnd.getFullYear(),periodInEnd.getMonth()+1,0,23,59,59,999);
+    periodLabel=pad(periodInStart.getDate())+'/'+pad(periodInStart.getMonth()+1)+' → '+
+      pad(periodInEnd.getDate())+'/'+pad(periodInEnd.getMonth()+1);
+    return;
+  }
   var now=new Date();
   var y=now.getFullYear(), m=now.getMonth();
   var baseM;
@@ -139,6 +159,32 @@ function calcPeriods(){
 }
 function pad(n){return n<10?'0'+n:''+n;}
 calcPeriods();
+
+// ===== PERIOD PICKER =====
+function openPeriodPicker(){
+  document.getElementById('modalPeriod').classList.add('active');
+  if(_periodOverride){
+    document.getElementById('periodStartInput').value=_periodOverride.start.toISOString().split('T')[0];
+    document.getElementById('periodEndInput').value=_periodOverride.end.toISOString().split('T')[0];
+  } else {
+    document.getElementById('periodStartInput').value='';
+    document.getElementById('periodEndInput').value='';
+  }
+}
+function closePeriodPicker(){document.getElementById('modalPeriod').classList.remove('active');}
+function applyPeriod(){
+  var s=document.getElementById('periodStartInput').value;
+  var e=document.getElementById('periodEndInput').value;
+  if(!s||!e){toast('Nhap ngay bat dau va ket thuc','error');return;}
+  _periodOverride={start:new Date(s+'T00:00:00'),end:new Date(e+'T00:00:00')};
+  closePeriodPicker();
+  refresh();
+}
+function resetPeriod(){
+  _periodOverride=null;
+  closePeriodPicker();
+  refresh();
+}
 
 // ===== HELPERS =====
 function C(v){
@@ -562,24 +608,25 @@ function calculateMetrics(){
 // ===== DATA LOAD =====
 async function refresh(){
   document.getElementById('loadingOverlay').classList.remove('hidden');
-  document.getElementById('statusText').textContent='Dang tai du lieu tu Google Sheet (gviz)...';
+  // Ưu tiên dùng CSV thay vì gviz (CSV ít bị cache hơn)
+  document.getElementById('statusText').textContent='Dang tai du lieu tu Google Sheet (CSV)...';
   try{
     var r=await Promise.all([
-      fetchSheet(0),
-      fetchSheet(398024906),
-      fetchSheet(118375355,60000).catch(function(){return [];})
+      fetchPublishedCSV(0),
+      fetchPublishedCSV(398024906),
+      fetchPublishedCSV(118375355).catch(function(){return [];})
     ]);
     allIn=mapAll(r[0]||[]);
     allOut=mapAll(r[1]||[]);
     allPrev=mapAll(r[2]||[]);
-    if(!allIn.length||!allOut.length)throw new Error('Empty gviz');
+    if(!allIn.length||!allOut.length)throw new Error('Empty CSV');
   }catch(e){
-    document.getElementById('statusText').textContent='gviz that bai, fallback sang CSV...';
+    document.getElementById('statusText').textContent='CSV that bai, thu lai voi gviz...';
     try{
       var r=await Promise.all([
-        fetchPublishedCSV(0),
-        fetchPublishedCSV(398024906),
-        fetchPublishedCSV(118375355).catch(function(){return [];})
+        fetchSheet(0),
+        fetchSheet(398024906),
+        fetchSheet(118375355,60000).catch(function(){return [];})
       ]);
       allIn=mapAll(r[0]||[]);
       allOut=mapAll(r[1]||[]);
@@ -596,6 +643,7 @@ async function refresh(){
   updateStats();
   updateChart();
   document.getElementById('loadingOverlay').classList.add('hidden');
+  document.getElementById('periodBtnLabel').textContent=_periodOverride?periodLabel:'Auto';
   toast(T.ok+' (IN:'+allIn.length+' / OUT:'+allOut.length+' / PREV:'+allPrev.length+')','success');
 
 }
@@ -1065,6 +1113,8 @@ window.app={
   showItem:showItem,toggleChk:toggleChk,
   pushSheet:pushSheet,exportExcel:exportExcel,
   openQR:openQR,closeQR:closeQR,
-  closeDetail:closeDetail,previewImg:previewImg,toggleTheme:toggleTheme,unlock:unlock
+  closeDetail:closeDetail,previewImg:previewImg,toggleTheme:toggleTheme,unlock:unlock,
+  openPeriodPicker:openPeriodPicker,closePeriodPicker:closePeriodPicker,
+  applyPeriod:applyPeriod,resetPeriod:resetPeriod
 };
 })();
