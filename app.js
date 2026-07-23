@@ -1055,13 +1055,13 @@ function exportExcel(type){
   var slH=type==='in'?'SL can OUT':type==='out'?'SL da OUT':'SL chua OUT';
   var dCol=type==='out'?'ts_moving_done':'ts_created';
   var dH=type==='out'?'Ngay OUT':'Ngay IN';
-  var hdr=[{SKU:'',Ten:T.colName,SL:slH,DonGia:T.colPrice,ThanhTien:T.colTotal,Ngay:dH,KhoN:T.colFrom,KhoD:T.colTo}];
+  var aoa=[[T.colSku,T.colName,slH,T.colPrice,T.colTotal,dH,T.colFrom,T.colTo]];
   for(var i=0;i<data.length;i++){
     var r=data[i];
-    hdr.push({SKU:r.sku_code,Ten:r.product_name,SL:r.qty_moving,DonGia:r.price_unit,ThanhTien:r.amt_moving,Ngay:D(r[dCol]),});
+    aoa.push([r.sku_code,r.product_name||'',r.qty_moving,r.price_unit,r.amt_moving,D(r[dCol]),r.area_from||'',r.area_to||'']);
   }
   try{
-  var ws=XLSX.utils.json_to_sheet(hdr);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,type.toUpperCase());
   XLSX.writeFile(wb,'MISSING_'+type.toUpperCase()+'_'+new Date().toISOString().split('T')[0]+'.xlsx');
