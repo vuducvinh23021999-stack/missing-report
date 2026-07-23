@@ -1256,7 +1256,8 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 // ===== EXPORT APP =====
-window.app={
+Object.defineProperty(window.app={},'detailType',{get:function(){return detailType;}});
+Object.assign(window.app,{
   setLang:setLang,refresh:refresh,
   goDetail:goDetail,goBack:goBack,
   showItem:showItem,toggleChk:toggleChk,
@@ -1266,5 +1267,5 @@ window.app={
   closeDetail:closeDetail,previewImg:previewImg,toggleTheme:toggleTheme,unlock:unlock,
   openPeriodPicker:openPeriodPicker,closePeriodPicker:closePeriodPicker,
   applyPeriod:applyPeriod,resetPeriod:resetPeriod
-};
+});
 })();
