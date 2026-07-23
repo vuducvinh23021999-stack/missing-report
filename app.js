@@ -1216,7 +1216,6 @@ document.getElementById('searchInput').addEventListener('keydown',function(e){
       var sku=String(arr[ri].sku_code||'').toLowerCase();
       var name=String(arr[ri].product_name||'').toLowerCase();
       if(sku.indexOf(term)>=0||name.indexOf(term)>=0){
-        goDetail(types[ti]);
         showItem(types[ti],ri);
         return;
       }
