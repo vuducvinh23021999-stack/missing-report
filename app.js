@@ -889,8 +889,6 @@ function renderDetail(){
 
   document.getElementById('pushInfo').textContent=Object.keys(checked[type]).length+T.pushedInfo;
   document.getElementById('btnExcel').onclick=function(){exportExcel(type);};
-  document.getElementById('btnPush').onclick=function(){pushSheet(type);};
-  document.getElementById('btnPush').style.display=type==='pending'?'none':'';
 
   var slH=type==='in'?T.colQtyIn:type==='out'?T.colQtyOut:T.colQtyPend;
   var dCol=type==='out'?'ts_moving_done':'ts_created';
@@ -1143,8 +1141,6 @@ function setLang(l){
   document.getElementById('excelIn').innerHTML=T.excelBtn;
   document.getElementById('excelOut').innerHTML=T.excelBtn;
   document.getElementById('excelPend').innerHTML=T.excelBtn;
-  document.getElementById('btnExcel').innerHTML=T.excelBtn;
-  document.getElementById('btnPush').innerHTML=T.pushBtn;
   document.getElementById('refreshBtn').innerHTML=T.refresh;
   document.getElementById('hintIn').textContent=T.clickHint;
   document.getElementById('hintOut').textContent=T.clickHint;
