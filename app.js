@@ -1069,28 +1069,34 @@ function exportExcel(type){
   }catch(e){toast('Excel export failed','error');}
 }
 
-// ===== EXPORT SUMMARY CSV =====
+// ===== EXPORT SUMMARY EXCEL =====
 function exportSummaryExcel(ev){
   ev&&ev.stopPropagation();
+  if(typeof XLSX==='undefined'){toast('Excel export not available','error');return;}
   var inLb=document.getElementById('sumInLabel').textContent;
   var gapLb=document.getElementById('sumGapLabel').textContent;
   var retLb=document.getElementById('sumRetLabel').textContent;
   var netLb=document.getElementById('sumNetLabel').textContent;
-  var csv='"'+inLb+'",'+summaryMetrics.inQty+','+summaryMetrics.inAmt+'\n'+
-    '"'+gapLb+'",'+summaryMetrics.gapQty+','+summaryMetrics.gapAmt+'\n'+
-    '"'+retLb+'",'+summaryMetrics.retQty+','+summaryMetrics.retAmt+'\n'+
-    '"'+netLb+'",'+summaryMetrics.netQty+','+summaryMetrics.netAmt;
-  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='SUMMARY_'+periodLabel.replace(/[/ →]/g,'_')+'.csv';
-  a.click();
-  toast('Da tai file CSV!','success');
+  var aoa=[
+    ['Hang muc','So luong (Qty)','So tien (Amount B)'],
+    [inLb,summaryMetrics.inQty,summaryMetrics.inAmt],
+    [gapLb,summaryMetrics.gapQty,summaryMetrics.gapAmt],
+    [retLb,summaryMetrics.retQty,summaryMetrics.retAmt],
+    [netLb,summaryMetrics.netQty,summaryMetrics.netAmt]
+  ];
+  try{
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'SUMMARY');
+  XLSX.writeFile(wb,'SUMMARY_'+periodLabel.replace(/[/ →]/g,'_')+'.xlsx');
+  toast('Da tai file Excel!','success');
+  }catch(e){toast('Export failed','error');}
 }
 
-// ===== EXPORT CHART CSV =====
+// ===== EXPORT CHART EXCEL =====
 function exportChartExcel(ev){
   ev&&ev.stopPropagation();
+  if(typeof XLSX==='undefined'){toast('Excel export not available','error');return;}
   var start=new Date(periodInStart);
   var inEnd=new Date(periodInEnd);
   var outEnd=new Date(returnedEnd);
@@ -1110,21 +1116,22 @@ function exportChartExcel(ev){
     var key=dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
     dayOut[key]=(dayOut[key]||0)+(parseFloat(r.amt_moving)||0);
   });
-  var csv='Ngay,IN (THB),OUT (THB)\n';
+  var aoa=[['Ngay','IN (THB)','OUT (THB)']];
   var cur=new Date(start);
   var chartEnd=outEnd>inEnd?outEnd:inEnd;
   while(cur<=chartEnd){
     var key=cur.getFullYear()+'-'+cur.getMonth()+'-'+cur.getDate();
     var d=cur.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
-    csv+=d+','+(dayIn[key]||0)+','+(dayOut[key]||0)+'\n';
+    aoa.push([d,dayIn[key]||0,dayOut[key]||0]);
     cur.setDate(cur.getDate()+1);
   }
-  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='CHART_'+periodLabel.replace(/[/ →]/g,'_')+'.csv';
-  a.click();
-  toast('Da tai file CSV!','success');
+  try{
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'CHART');
+  XLSX.writeFile(wb,'CHART_'+periodLabel.replace(/[/ →]/g,'_')+'.xlsx');
+  toast('Da tai file Excel!','success');
+  }catch(e){toast('Export failed','error');}
 }
 
 // ===== LANGUAGE =====
