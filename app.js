@@ -1078,7 +1078,7 @@ function exportSummaryExcel(ev){
   a.href=URL.createObjectURL(blob);
   a.download='SUMMARY_'+periodLabel.replace(/[/ →]/g,'_')+'.csv';
   a.click();
-  toast(T.exportOk,'success');
+  toast('Da tai file CSV!','success');
 }
 
 // ===== EXPORT CHART CSV =====
@@ -1117,7 +1117,7 @@ function exportChartExcel(ev){
   a.href=URL.createObjectURL(blob);
   a.download='CHART_'+periodLabel.replace(/[/ →]/g,'_')+'.csv';
   a.click();
-  toast(T.exportOk,'success');
+  toast('Da tai file CSV!','success');
 }
 
 // ===== LANGUAGE =====
