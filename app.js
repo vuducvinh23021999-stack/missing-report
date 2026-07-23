@@ -1062,6 +1062,69 @@ function exportExcel(type){
   }catch(e){toast('Excel export failed','error');}
 }
 
+// ===== EXPORT SUMMARY EXCEL =====
+function exportSummaryExcel(ev){
+  ev&&ev.stopPropagation();
+  if(typeof XLSX==='undefined'){toast('Excel export not available','error');return;}
+  var rows=[
+    {HangMuc:document.getElementById('sumInLabel').textContent,SoLuong:summaryMetrics.inQty,SoTien:summaryMetrics.inAmt},
+    {HangMuc:document.getElementById('sumGapLabel').textContent,SoLuong:summaryMetrics.gapQty,SoTien:summaryMetrics.gapAmt},
+    {HangMuc:document.getElementById('sumRetLabel').textContent,SoLuong:summaryMetrics.retQty,SoTien:summaryMetrics.retAmt},
+    {HangMuc:document.getElementById('sumNetLabel').textContent,SoLuong:summaryMetrics.netQty,SoTien:summaryMetrics.netAmt}
+  ];
+  try{
+    var ws=XLSX.utils.json_to_sheet(rows);
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'SUMMARY');
+    XLSX.writeFile(wb,'SUMMARY_'+periodLabel.replace(/[/ →]/g,'_')+'.xlsx');
+    toast(T.exportOk,'success');
+  }catch(e){toast('Excel export failed','error');}
+}
+
+// ===== EXPORT CHART EXCEL =====
+function exportChartExcel(ev){
+  ev&&ev.stopPropagation();
+  if(typeof XLSX==='undefined'){toast('Excel export not available','error');return;}
+  var start=new Date(periodInStart);
+  var inEnd=new Date(periodInEnd);
+  var outEnd=new Date(returnedEnd);
+  var now=new Date();
+  if(inEnd>now)inEnd=now;
+  if(outEnd>now)outEnd=now;
+  var dayIn={}, dayOut={};
+  allIn.forEach(function(r){
+    var dt=parseGDate(r.ts_created);
+    if(!dt||dt<start||dt>inEnd)return;
+    var key=dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
+    dayIn[key]=(dayIn[key]||0)+(parseFloat(r.amt_moving)||0);
+  });
+  allOut.forEach(function(r){
+    var dt=parseGDate(r.ts_moving_done);
+    if(!dt||dt<start||dt>outEnd)return;
+    var key=dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
+    dayOut[key]=(dayOut[key]||0)+(parseFloat(r.amt_moving)||0);
+  });
+  var rows=[];
+  var cur=new Date(start);
+  var chartEnd=outEnd>inEnd?outEnd:inEnd;
+  while(cur<=chartEnd){
+    var key=cur.getFullYear()+'-'+cur.getMonth()+'-'+cur.getDate();
+    rows.push({
+      Ngay:cur.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}),
+      'IN (THB)':dayIn[key]||0,
+      'OUT (THB)':dayOut[key]||0
+    });
+    cur.setDate(cur.getDate()+1);
+  }
+  try{
+    var ws=XLSX.utils.json_to_sheet(rows);
+    var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'CHART');
+    XLSX.writeFile(wb,'CHART_'+periodLabel.replace(/[/ →]/g,'_')+'.xlsx');
+    toast(T.exportOk,'success');
+  }catch(e){toast('Excel export failed','error');}
+}
+
 // ===== LANGUAGE =====
 function setLang(l){
   lang=l;T=I18[l]||I18.vi;
@@ -1199,6 +1262,7 @@ window.app={
   goDetail:goDetail,goBack:goBack,
   showItem:showItem,toggleChk:toggleChk,
   pushSheet:pushSheet,exportExcel:exportExcel,
+  exportSummaryExcel:exportSummaryExcel,exportChartExcel:exportChartExcel,
   openQR:openQR,closeQR:closeQR,
   closeDetail:closeDetail,previewImg:previewImg,toggleTheme:toggleTheme,unlock:unlock,
   openPeriodPicker:openPeriodPicker,closePeriodPicker:closePeriodPicker,

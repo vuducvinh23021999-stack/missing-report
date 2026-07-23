@@ -177,7 +177,10 @@
         <div class="card-section">
           <div class="section-header">
             <div class="section-title" id="sumTitle">📊 Bang tong hop du lieu ky nay</div>
-            <div style="font-size:12px;color:var(--text-subtle)" id="summaryPeriod"></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="font-size:12px;color:var(--text-subtle)" id="summaryPeriod"></div>
+              <button class="btn-xs" onclick="app.exportSummaryExcel(event)" title="Export summary">📥</button>
+            </div>
           </div>
           <div class="summary-table-wrap">
             <table class="summary-table">
@@ -218,19 +221,22 @@
         <div class="card-section">
           <div class="section-header">
             <div class="section-title" id="chartTitle">📊 Bieu do Missing theo ngay</div>
-            <div class="chart-legend">
-              <span class="legend-pill blue">
-                <span class="legend-dot blue"></span>
-                <span id="leg1">IN binh thuong</span>
-              </span>
-              <span class="legend-pill red">
-                <span class="legend-dot red"></span>
-                <span id="leg2">IN > 5000 THB - canh bao</span>
-              </span>
-              <span class="legend-pill gray">
-                <span class="legend-dot gray"></span>
-                <span id="leg3">OUT MISSING</span>
-              </span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="chart-legend">
+                <span class="legend-pill blue">
+                  <span class="legend-dot blue"></span>
+                  <span id="leg1">IN binh thuong</span>
+                </span>
+                <span class="legend-pill red">
+                  <span class="legend-dot red"></span>
+                  <span id="leg2">IN > 5000 THB - canh bao</span>
+                </span>
+                <span class="legend-pill gray">
+                  <span class="legend-dot gray"></span>
+                  <span id="leg3">OUT MISSING</span>
+                </span>
+              </div>
+              <button class="btn-xs" onclick="app.exportChartExcel(event)" title="Export chart data">📥</button>
             </div>
           </div>
           <div class="chart-container"><canvas id="chartMissing"></canvas></div>
