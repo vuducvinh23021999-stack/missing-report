@@ -1062,29 +1062,28 @@ function exportExcel(type){
   }catch(e){toast('Excel export failed','error');}
 }
 
-// ===== EXPORT SUMMARY EXCEL =====
+// ===== EXPORT SUMMARY CSV =====
 function exportSummaryExcel(ev){
   ev&&ev.stopPropagation();
-  if(typeof XLSX==='undefined'){toast('Excel export not available','error');return;}
-  var rows=[
-    {HangMuc:document.getElementById('sumInLabel').textContent,SoLuong:summaryMetrics.inQty,SoTien:summaryMetrics.inAmt},
-    {HangMuc:document.getElementById('sumGapLabel').textContent,SoLuong:summaryMetrics.gapQty,SoTien:summaryMetrics.gapAmt},
-    {HangMuc:document.getElementById('sumRetLabel').textContent,SoLuong:summaryMetrics.retQty,SoTien:summaryMetrics.retAmt},
-    {HangMuc:document.getElementById('sumNetLabel').textContent,SoLuong:summaryMetrics.netQty,SoTien:summaryMetrics.netAmt}
-  ];
-  try{
-    var ws=XLSX.utils.json_to_sheet(rows);
-    var wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'SUMMARY');
-    XLSX.writeFile(wb,'SUMMARY_'+periodLabel.replace(/[/ →]/g,'_')+'.xlsx');
-    toast(T.exportOk,'success');
-  }catch(e){toast('Excel export failed','error');}
+  var inLb=document.getElementById('sumInLabel').textContent;
+  var gapLb=document.getElementById('sumGapLabel').textContent;
+  var retLb=document.getElementById('sumRetLabel').textContent;
+  var netLb=document.getElementById('sumNetLabel').textContent;
+  var csv='"'+inLb+'",'+summaryMetrics.inQty+','+summaryMetrics.inAmt+'\n'+
+    '"'+gapLb+'",'+summaryMetrics.gapQty+','+summaryMetrics.gapAmt+'\n'+
+    '"'+retLb+'",'+summaryMetrics.retQty+','+summaryMetrics.retAmt+'\n'+
+    '"'+netLb+'",'+summaryMetrics.netQty+','+summaryMetrics.netAmt;
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='SUMMARY_'+periodLabel.replace(/[/ →]/g,'_')+'.csv';
+  a.click();
+  toast(T.exportOk,'success');
 }
 
-// ===== EXPORT CHART EXCEL =====
+// ===== EXPORT CHART CSV =====
 function exportChartExcel(ev){
   ev&&ev.stopPropagation();
-  if(typeof XLSX==='undefined'){toast('Excel export not available','error');return;}
   var start=new Date(periodInStart);
   var inEnd=new Date(periodInEnd);
   var outEnd=new Date(returnedEnd);
@@ -1104,25 +1103,21 @@ function exportChartExcel(ev){
     var key=dt.getFullYear()+'-'+dt.getMonth()+'-'+dt.getDate();
     dayOut[key]=(dayOut[key]||0)+(parseFloat(r.amt_moving)||0);
   });
-  var rows=[];
+  var csv='Ngay,IN (THB),OUT (THB)\n';
   var cur=new Date(start);
   var chartEnd=outEnd>inEnd?outEnd:inEnd;
   while(cur<=chartEnd){
     var key=cur.getFullYear()+'-'+cur.getMonth()+'-'+cur.getDate();
-    rows.push({
-      Ngay:cur.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}),
-      'IN (THB)':dayIn[key]||0,
-      'OUT (THB)':dayOut[key]||0
-    });
+    var d=cur.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
+    csv+=d+','+(dayIn[key]||0)+','+(dayOut[key]||0)+'\n';
     cur.setDate(cur.getDate()+1);
   }
-  try{
-    var ws=XLSX.utils.json_to_sheet(rows);
-    var wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'CHART');
-    XLSX.writeFile(wb,'CHART_'+periodLabel.replace(/[/ →]/g,'_')+'.xlsx');
-    toast(T.exportOk,'success');
-  }catch(e){toast('Excel export failed','error');}
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='CHART_'+periodLabel.replace(/[/ →]/g,'_')+'.csv';
+  a.click();
+  toast(T.exportOk,'success');
 }
 
 // ===== LANGUAGE =====
