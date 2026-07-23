@@ -9,7 +9,7 @@ var SHEET_ID  ='1D9A-q2kAEpM6TX-V5jCvm2tPZYhv1V4Ia4o66K7tCis';
 var PUB_ID    = '2PACX-1vSPN5fVv7WDj6hI8L2-Yp-B6noDOlTcDYxuAtaezKLr02kn8UStXylsyDxtN0DC5Wc0izT-KSFXKhsv';
 var WARN_THRESHOLD = 5000;
 var IMG_SHEET_ID = '1Uax84tRusV963wT4QvyHN3qpJ1zy7LQJ1pnO6H2eEPk';
-var IMG_GID = 2002497747;
+var IMG_GID = 113695465;
 
 var I18 = {
   vi:{
@@ -377,17 +377,24 @@ function fetchImageSheet(){
     window[cb]=function(r){
       try{
         if(!r||!r.table||!r.table.rows){resolve({});return;}
+        var cols=r.table.cols;
+        var colIdx={};
+        for(var ci=0;ci<cols.length;ci++){
+          var label=String(cols[ci].label||'').toLowerCase().trim();
+          if(label==='mã sku')colIdx.sku=ci;
+          if(label==='mã vị trí'||label==='ma vi tri')colIdx.loc=ci;
+        }
+        if(colIdx.sku===undefined){resolve({});return;}
         var map={}, loc={};
         for(var ri=0;ri<r.table.rows.length;ri++){
           var cells=r.table.rows[ri].c;
-          if(!cells||cells.length<9)continue;
-          var sku=cells[1]&&cells[1].v?String(cells[1].v).trim():'';
-          var img=cells[7]&&cells[7].v?String(cells[7].v).trim():'';
-          var locStr=cells[8]&&cells[8].v?String(cells[8].v).trim():'';
-          if(sku){
-            if(img&&img.indexOf('http')===0)map[sku.toLowerCase()]=img;
-            if(locStr)loc[sku.toLowerCase()]=locStr;
-          }
+          if(!cells||!cells[colIdx.sku])continue;
+          var sku=String(cells[colIdx.sku].v||'').trim();
+          if(!sku)continue;
+          var lok=colIdx.loc!==undefined&&cells[colIdx.loc]?String(cells[colIdx.loc].v||'').trim():'';
+          var key=sku.toLowerCase();
+          if(!loc[key])loc[key]=[];
+          if(lok)loc[key].push(lok);
         }
         resolve({imgs:map,locs:loc});
       }catch(e){resolve({imgs:{},locs:{}});}
@@ -940,28 +947,20 @@ function showItem(type,idx){
 function closeDetail(){document.getElementById('modalDetail').classList.remove('active');}
 function previewImg(url){document.getElementById('mdImg').src=url;document.getElementById('modalImg').classList.add('active');}
 
-// ===== FETCH LOCATION (proxy WMS) =====
-var _locCache={};
-var _isLocal=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1';
+// ===== FETCH LOCATION =====
 function fetchSkuLocation(sku,el){
   if(!sku||!el)return;
   var key=sku.toLowerCase();
-  if(locMap[key]){el.innerHTML=E(locMap[key]);return;}
-  if(!_isLocal){el.innerHTML='<span style="color:var(--text-subtle)">-</span>';return;}
-  el.innerHTML='<span style="color:var(--text-subtle)">dang tai...</span>';
-  fetch('/inv?sku='+encodeURIComponent(sku),{signal:AbortSignal.timeout(5000)}).then(function(r){
-    if(!r.ok)throw new Error();
-    return r.json();
-  }).then(function(j){
-    if(j&&j.locations){
-      el.innerHTML=E(j.locations);
-      _locCache[key]=j.locations;
-    } else {
-      el.innerHTML='<span style="color:var(--text-subtle)">Khong co du lieu</span>';
+  var locs=locMap[key];
+  if(locs&&locs.length){
+    var html='';
+    for(var li=0;li<locs.length;li++){
+      html+='<span style="display:inline-block;background:rgba(139,92,246,0.15);padding:2px 8px;border-radius:4px;margin:2px;font-size:11px;color:var(--accent)">'+E(locs[li])+'</span>';
     }
-  }).catch(function(){
+    el.innerHTML=html;
+  } else {
     el.innerHTML='<span style="color:var(--text-subtle)">-</span>';
-  });
+  }
 }
 
 
