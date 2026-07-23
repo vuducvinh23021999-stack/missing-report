@@ -1041,7 +1041,16 @@ function pushSheet(type){
 // ===== EXPORT EXCEL =====
 function exportExcel(type){
   if(typeof XLSX==='undefined'){toast('Excel export not available (blocked by browser)','error');return;}
-  var data=type==='in'?allInGrouped:type==='out'?allOutGrouped:allPendGrouped;
+  var allData=type==='in'?allInGrouped:type==='out'?allOutGrouped:allPendGrouped;
+  if(!allData.length){toast(T.empty,'error');return;}
+  var chk=checked[type]||{};
+  var tickedSku=Object.keys(chk);
+  var data;
+  if(tickedSku.length>0){
+    data=allData.filter(function(r){return chk[r.sku_code];});
+  } else {
+    data=allData;
+  }
   if(!data.length){toast(T.empty,'error');return;}
   var slH=type==='in'?'SL can OUT':type==='out'?'SL da OUT':'SL chua OUT';
   var dCol=type==='out'?'ts_moving_done':'ts_created';
@@ -1056,7 +1065,7 @@ function exportExcel(type){
   var wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,type.toUpperCase());
   XLSX.writeFile(wb,'MISSING_'+type.toUpperCase()+'_'+new Date().toISOString().split('T')[0]+'.xlsx');
-  toast(T.exportOk,'success');
+  toast((tickedSku.length>0?'Da xuat '+tickedSku.length+' SKU da tick':'Da xuat tat ca')+'!','success');
   }catch(e){toast('Excel export failed','error');}
 }
 
