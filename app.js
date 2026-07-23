@@ -35,6 +35,7 @@ var I18 = {
     colQtyIn:'SL can OUT',colQtyOut:'SL da OUT',colQtyPend:'SL chua OUT ky nay',
     colDateIn:'Ngay IN',colDateOut:'Ngay OUT',
     labelStatus:'Trang thai',labelSKU:'SKU',labelTenSP:'Ten SP',labelSL:'So luong',labelDG:'Don gia',labelTT:'Thanh tien',labelNgayIN:'Ngay IN',labelNgayOUT:'Ngay OUT',labelKhoN:'Kho nguon',labelKhoD:'Kho dich',
+    labelViTri:'Vi tri',
     warn:'⚠ Canh bao: > 5000 THB'
   },
   en:{
@@ -59,6 +60,7 @@ var I18 = {
     colQtyIn:'Qty to OUT',colQtyOut:'Qty OUT',colQtyPend:'Qty not yet OUT',
     colDateIn:'IN Date',colDateOut:'OUT Date',
     labelStatus:'Status',labelSKU:'SKU',labelTenSP:'Product',labelSL:'Qty',labelDG:'Unit price',labelTT:'Amount',labelNgayIN:'IN Date',labelNgayOUT:'OUT Date',labelKhoN:'From',labelKhoD:'To',
+    labelViTri:'Location',
     warn:'⚠ Warning: > 5000 THB'
   },
   th:{
@@ -79,6 +81,7 @@ var I18 = {
     colQtyIn:'จำนวนที่ต้อง OUT',colQtyOut:'จำนวนที่ OUT แล้ว',colQtyPend:'จำนวนที่ยังไม่ OUT',
     colDateIn:'วันที่ IN',colDateOut:'วันที่ OUT',
     labelStatus:'สถานะ',labelSKU:'SKU',labelTenSP:'สินค้า',labelSL:'จำนวน',labelDG:'ราคาต่อหน่วย',labelTT:'จำนวนเงิน',labelNgayIN:'วันที่ IN',labelNgayOUT:'วันที่ OUT',labelKhoN:'จาก',labelKhoD:'ถึง',
+    labelViTri:'ตำแหน่ง',
     warn:'⚠ คำเตือน: > 5000 THB'
   }
 };
@@ -983,7 +986,7 @@ function showItem(type,idx){
     '<div class="detail-row"><div class="label">'+T.labelTT+'</div><div class="'+amtClass+'">'+C(r.amt_moving)+' THB'+(amtVal>WARN_THRESHOLD?' ⚠️':'')+'</div></div>'+
     '<div class="detail-row"><div class="label">'+T.labelNgayIN+'</div><div class="value">'+(r.ts_created ? D(r.ts_created) : '-')+'</div></div>'+
     (type==='out'?'<div class="detail-row"><div class="label">'+T.labelNgayOUT+'</div><div class="value">'+(r.ts_moving_done ? D(r.ts_moving_done) : '-')+'</div></div>':'')+
-    '<div class="detail-row"><div class="label">Ton kho</div><div class="value" id="locVal" style="font-size:13px;color:var(--success)">...</div></div>'+
+    '<div class="detail-row"><div class="label">'+T.labelViTri+'</div><div class="value" id="locVal" style="font-size:13px;color:var(--success)">...</div></div>'+
     '</div></div>';
   document.getElementById('modalDetail').classList.add('active');
   fetchSkuLocation(r.sku_code,document.getElementById('locVal'));
