@@ -1142,7 +1142,7 @@ function closeQR(){
 }
 
 // ===== SEARCH =====
-document.getElementById('searchInput').addEventListener('keypress',function(e){
+document.getElementById('searchInput').addEventListener('keydown',function(e){
   if(e.key!=='Enter')return;
   var term=e.target.value.toLowerCase().trim();
   if(!term)return;
@@ -1154,6 +1154,7 @@ document.getElementById('searchInput').addEventListener('keypress',function(e){
       var name=String(arr[ri].product_name||'').toLowerCase();
       if(sku.indexOf(term)>=0||name.indexOf(term)>=0){
         goDetail(types[ti]);
+        showItem(types[ti],ri);
         return;
       }
     }
