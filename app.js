@@ -685,6 +685,8 @@ async function refresh(){
     var imgRes=await fetchImageSheet();
     imgMap=imgRes.imgs||{};
     locMap=imgRes.locs||{};
+  }catch(e){imgMap={};locMap={};}
+  try{
     var invLoc=await fetchLocationSheet();
     for(var lk in invLoc){
       if(invLoc.hasOwnProperty(lk)){
@@ -692,7 +694,7 @@ async function refresh(){
         else {locMap[lk]=invLoc[lk];}
       }
     }
-  }catch(e){imgMap={};locMap={};}
+  }catch(e){}
   var imgCount=Object.keys(imgMap).length;
   calcPeriods();
   calculateMetrics();
