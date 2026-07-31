@@ -102,6 +102,7 @@ var checked={in:{},out:{},pending:{}};
 var _periodOverride=null; // {start:Date, end:Date} or null for auto
 var qr=null, chart=null, _chartDayFilter=null, _debugOutPeriod=0;
 var detailType=null;
+var _detailData=null;
 var periodInStart=null, periodInEnd=null;
 var prevInStart=null, prevInEnd=null;
 var gapStart=null, gapEnd=null;
@@ -857,6 +858,7 @@ function goBack(){
   document.getElementById('pageDetail').style.display='none';
   ['In','Out','Pending'].forEach(function(k){document.getElementById('card'+k).classList.remove('active');});
   detailType=null;
+  _detailData=null;
   window.scrollTo(0,0);
 }
 
@@ -872,6 +874,7 @@ function renderDetail(){
     data=type==='in'?allInGrouped:
       type==='out'?allOutGrouped:allPendGrouped;
   }
+  _detailData=data;
   var titles={in:T.dIn,out:T.dOut,pending:T.dPend};
   var notes={in:T.noteIn,out:T.noteOut,pending:T.notePend};
 
@@ -955,8 +958,8 @@ function toggleChk(type,sku,td){
 
 // ===== SHOW ITEM =====
 function showItem(type,idx){
-  var data=type==='in'?allInGrouped:
-    type==='out'?allOutGrouped:allPendGrouped;
+  var data=_detailData||(type==='in'?allInGrouped:
+    type==='out'?allOutGrouped:allPendGrouped);
   var r=data[idx];
   if(!r)return;
   var bc=type;
@@ -1220,6 +1223,7 @@ document.getElementById('searchInput').addEventListener('keydown',function(e){
       var sku=String(arr[ri].sku_code||'').toLowerCase();
       var name=String(arr[ri].product_name||'').toLowerCase();
       if(sku.indexOf(term)>=0||name.indexOf(term)>=0){
+        _detailData=arr;
         showItem(types[ti],ri);
         return;
       }
