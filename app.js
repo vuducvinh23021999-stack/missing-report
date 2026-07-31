@@ -800,13 +800,10 @@ function updateChart(){
     options:{
       responsive:true,maintainAspectRatio:false,
       onClick:function(e){
-        var bars=chart.getElementsAtEventForMode(e,'index',{intersect:true},false);
+        var bars=chart.getElementsAtEventForMode(e,'nearest',{intersect:true},false);
         if(!bars||!bars.length)return;
-        var idx=bars[0].index;
-        var ds=bars[0].datasetIndex;
-        var d=dateKeys[idx];
-        var t=ds===0?'in':'out';
-        showChartDayDetail(t,d);
+        var el=bars[0];
+        showChartDayDetail(el.datasetIndex===0?'in':'out',dateKeys[el.index]);
       },
       scales:{
         x:{grid:{color:'#2a2a2a'},ticks:{color:'#888',maxTicksLimit:15}},
