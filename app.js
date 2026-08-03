@@ -36,6 +36,7 @@ var I18 = {
     colDateIn:'Ngay IN',colDateOut:'Ngay OUT',
     labelStatus:'Trang thai',labelSKU:'SKU',labelTenSP:'Ten SP',labelSL:'So luong',labelDG:'Don gia',labelTT:'Thanh tien',labelNgayIN:'Ngay IN',labelNgayOUT:'Ngay OUT',labelKhoN:'Kho nguon',labelKhoD:'Kho dich',
     labelViTri:'Vi tri',
+    sumColCat:'Hạng mục',sumColQty:'Số lượng (Qty)',sumColAmt:'Số tiền (Amount ฿)',
     warn:'⚠ Canh bao: > 5000 THB'
   },
   en:{
@@ -61,6 +62,7 @@ var I18 = {
     colDateIn:'IN Date',colDateOut:'OUT Date',
     labelStatus:'Status',labelSKU:'SKU',labelTenSP:'Product',labelSL:'Qty',labelDG:'Unit price',labelTT:'Amount',labelNgayIN:'IN Date',labelNgayOUT:'OUT Date',labelKhoN:'From',labelKhoD:'To',
     labelViTri:'Location',
+    sumColCat:'Category',sumColQty:'Qty',sumColAmt:'Amount ฿',
     warn:'⚠ Warning: > 5000 THB'
   },
   th:{
@@ -82,12 +84,13 @@ var I18 = {
     colDateIn:'วันที่ IN',colDateOut:'วันที่ OUT',
     labelStatus:'สถานะ',labelSKU:'SKU',labelTenSP:'สินค้า',labelSL:'จำนวน',labelDG:'ราคาต่อหน่วย',labelTT:'จำนวนเงิน',labelNgayIN:'วันที่ IN',labelNgayOUT:'วันที่ OUT',labelKhoN:'จาก',labelKhoD:'ถึง',
     labelViTri:'ตำแหน่ง',
+    sumColCat:'รายการ',sumColQty:'จำนวน',sumColAmt:'จำนวนเงิน',
     warn:'⚠ คำเตือน: > 5000 THB'
   }
 };
 
 var T = I18.vi;
-var lang = 'vi';
+var lang = 'en';
 var allIn=[], allOut=[], allPrev=[], allPend=[];
 var imgMap={};
 var locMap={}; // SKU → location string
@@ -1078,7 +1081,7 @@ function exportSummaryExcel(ev){
   var retLb=document.getElementById('sumRetLabel').textContent;
   var netLb=document.getElementById('sumNetLabel').textContent;
   var aoa=[
-    ['Hang muc','So luong (Qty)','So tien (Amount B)'],
+    [T.sumColCat,T.sumColQty,T.sumColAmt],
     [inLb,summaryMetrics.inQty,summaryMetrics.inAmt],
     [gapLb,summaryMetrics.gapQty,summaryMetrics.gapAmt],
     [retLb,summaryMetrics.retQty,summaryMetrics.retAmt],
@@ -1137,6 +1140,7 @@ function exportChartExcel(ev){
 // ===== LANGUAGE =====
 function setLang(l){
   lang=l;T=I18[l]||I18.vi;
+  try{localStorage.setItem('dt_lang',l)}catch(e){};
   document.getElementById('langSel').value=l;
   document.getElementById('loadingText').textContent=T.loading;
   document.getElementById('liveText').textContent=T.live;
@@ -1164,6 +1168,9 @@ function setLang(l){
   
   var sumTitleText = lang==='vi'?'📊 Bảng tổng hợp dữ liệu kỳ này':lang==='en'?'📊 Period Summary Table':'📊 ตารางสรุปข้อมูลรอบนี้';
   document.getElementById('sumTitle').textContent=sumTitleText;
+  document.getElementById('sumThCat').textContent=T.sumColCat;
+  document.getElementById('sumThQty').textContent=T.sumColQty;
+  document.getElementById('sumThAmt').textContent=T.sumColAmt;
   
   updateStats();
   if(detailType)renderDetail();
@@ -1249,7 +1256,7 @@ function unlock(){
   var pwd=document.getElementById('lockInput').value;
   if(pwd===_PASSWORD){
     document.getElementById('lockOverlay').style.display='none';
-    var saved=localStorage.getItem('theme');if(saved==='light')document.body.classList.add('light');setLang('vi');
+    var saved=localStorage.getItem('theme');if(saved==='light')document.body.classList.add('light');setLang(localStorage.getItem('dt_lang')||'en');
     refresh();
   } else {
     document.getElementById('lockError').style.display='block';
@@ -1259,7 +1266,7 @@ document.getElementById('lockInput').addEventListener('keydown',function(e){if(e
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded',function(){
-  var saved=localStorage.getItem('theme');if(saved==='light')document.body.classList.add('light');setLang('vi');
+  var saved=localStorage.getItem('theme');if(saved==='light')document.body.classList.add('light');setLang(localStorage.getItem('dt_lang')||'en');
   // wait for unlock
 });
 
